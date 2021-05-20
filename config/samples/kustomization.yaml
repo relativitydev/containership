@@ -1,0 +1,4 @@
+## This file is auto-generated, do not modify ##
+resources:
+  - containership_v1alpha1_containermanagementobject.yaml
+  - containership_v1beta1_containermanagementobject.yaml

@@ -2,23 +2,17 @@
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.177.0/containers/go
 {
 	"name": "Go",
-	"dockerFile": "Dockerfile",
-	"runArgs": [
-		// Uncomment the next line to use a non-root user. On Linux, this will prevent
-		// new files getting created as root, but you may need to update the USER_UID
-		// and USER_GID in .devcontainer/Dockerfile to match your user if not 1000.
-		// "-u", "vscode",
-
-		// Mount go mod cache
-		"-v", "containership-gomodcache:/go/pkg",
-		// Cache vscode exentsions installs and homedir
-		"-v", "containership-vscodecache:/root/.vscode-server",
-
-		// Mount docker socket for docker builds
-		"-v", "/var/run/docker.sock:/var/run/docker.sock",
-
-		"--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined"
-	],
+	"build": {
+		"dockerfile": "Dockerfile",
+		"args": {
+			// Update the VARIANT arg to pick a version of Go: 1, 1.16, 1.15
+			"VARIANT": "1.15",
+			// Options
+			"INSTALL_NODE": "true",
+			"NODE_VERSION": "lts/*"
+		}
+	},
+	"runArgs": [ "--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined" ],
 
 	// Set *default* container specific settings.json values on container create.
 	"settings": {
@@ -31,7 +25,7 @@
 
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
-		"golang.go"
+		"golang.Go"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.

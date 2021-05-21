@@ -1,0 +1,29 @@
+name: "Generate changelog with git-chglog"
+description: "Generate a changelog using conventional commits using the git-chglog tool"
+branding:
+  icon: "calendar"
+  color: "green"
+
+inputs:
+  config_dir:
+    description: "git-chglog configuration directory"
+    default: ".chglog"
+    required: true
+  filename:
+    description: "Filename to write the changelog to"
+    default: "CHANGELOG_TMP.md"
+    required: false
+  tag:
+    description: A git tag to use to generate the changelog
+    required: true
+
+runs:
+  using: "docker"
+  image: "docker://r1k8spublic.azurecr.io/cloud-engineering/ci/changelog:latest"
+  args:
+    - -c
+    - ${{ inputs.config_dir }}
+    - -o
+    - ${{ inputs.filename }}
+    - -t
+    - ${{ inputs.tag }}

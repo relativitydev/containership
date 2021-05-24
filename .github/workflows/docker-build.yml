@@ -1,0 +1,15 @@
+name: "Docker Build"
+on:
+  pull_request:
+    branches:
+      - "develop"
+
+jobs:
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+      - name: Docker Build
+        run: make docker-build

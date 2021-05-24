@@ -1,0 +1,24 @@
+# permissions for end users to edit containermanagementobjects.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: containermanagementobject-editor-role
+rules:
+- apiGroups:
+  - containership.app
+  resources:
+  - containermanagementobjects
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - containership.app
+  resources:
+  - containermanagementobjects/status
+  verbs:
+  - get

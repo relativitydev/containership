@@ -1,0 +1,7 @@
+apiVersion: containership.app/v1beta1
+kind: ContainerManagementObject
+metadata:
+  name: containermanagementobject-sample
+spec:
+  # Add fields here
+  foo: bar

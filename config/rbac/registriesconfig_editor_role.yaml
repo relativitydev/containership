@@ -1,15 +1,13 @@
-
----
+# permissions for end users to edit registriesconfigs.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  creationTimestamp: null
-  name: manager-role
+  name: registriesconfig-editor-role
 rules:
 - apiGroups:
   - containership.app
   resources:
-  - containermanagementobjects
+  - registriesconfigs
   verbs:
   - create
   - delete
@@ -21,14 +19,6 @@ rules:
 - apiGroups:
   - containership.app
   resources:
-  - containermanagementobjects/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - containership.app
-  resources:
-  - containermanagementobjects/status
+  - registriesconfigs/status
   verbs:
   - get
-  - patch
-  - update

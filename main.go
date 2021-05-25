@@ -82,6 +82,7 @@ func main() {
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("ContainerManagementObject"),
 		Scheme: mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("cmo-controller"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ContainerManagementObject")
 		os.Exit(1)

@@ -22,14 +22,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -37,11 +41,15 @@ import (
 	"github.com/relativitydev/containership/pkg/processor"
 )
 
+// Time in seconds for regular looping of CMO configurations
+var interval = 600
+
 // ContainerManagementObjectReconciler reconciles a ContainerManagementObject object
 type ContainerManagementObjectReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log      logr.Logger
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
 }
 
 //+kubebuilder:rbac:groups=containership.app,resources=containermanagementobjects,verbs=get;list;watch;create;update;patch;delete
@@ -50,10 +58,6 @@ type ContainerManagementObjectReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the ContainerManagementObject object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.2/pkg/reconcile
@@ -110,14 +114,25 @@ func (r *ContainerManagementObjectReconciler) Reconcile(ctx context.Context, req
 		getRegistryCredentials(ctx, secretInstance, registryCredentialsDict)
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: time.Second * time.Duration(interval)}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ContainerManagementObjectReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&containershipappv1beta2.ContainerManagementObject{}).
+		WithEventFilter(ignoreDeletionPredicate()).
 		Complete(r)
+}
+
+// There is no need to reconcile deleted CMOs
+func ignoreDeletionPredicate() predicate.Predicate {
+	return predicate.Funcs{
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			// Evaluates to false if the object has been confirmed deleted.
+			return !e.DeleteStateUnknown
+		},
+	}
 }
 
 // getRegistryCredentials get the creds for each registry's auth config

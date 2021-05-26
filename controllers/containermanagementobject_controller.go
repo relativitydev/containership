@@ -111,8 +111,13 @@ func (r *ContainerManagementObjectReconciler) Reconcile(ctx context.Context, req
 			return ctrl.Result{}, errors.Wrap(err, fmt.Sprintf("Error reading secret %s - requeue the request", secretName))
 		}
 
-		getRegistryCredentials(ctx, secretInstance, registryCredentialsDict)
+		err = getRegistryCredentials(ctx, secretInstance, registryCredentialsDict)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "Error reading secret context - requeue the request")
+		}
 	}
+
+	// TODO: Call image promotion processor logic
 
 	return ctrl.Result{RequeueAfter: time.Second * time.Duration(interval)}, nil
 }
@@ -138,30 +143,39 @@ func ignoreDeletionPredicate() predicate.Predicate {
 // getRegistryCredentials get the creds for each registry's auth config
 func getRegistryCredentials(ctx context.Context, secret *corev1.Secret, obj map[string]processor.RegistryCredentials) error {
 	// Base64 decode the secret property value
-	encodedCreds := secret.StringData[".dockerconfigjson"]
-	rawCreds, err := base64.StdEncoding.DecodeString(encodedCreds)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("Error base64 decoding secret %s - requeue the request", secret.Name))
+	rawCreds := secret.Data[".dockerconfigjson"]
+	if len(rawCreds) == 0 {
+		rawCreds = []byte(secret.StringData[".dockerconfigjson"])
 	}
 
-	// Unmarshall the json to a golang struct
-	config := &DockerConfigSecret{}
-	err = json.Unmarshal(rawCreds, config)
+	/*
+		{
+			"auths": {
+				"containership-docker": {
+					"auth": "dGlnZXI6cGFzczExMw=="
+				}
+			}
+		}
+	*/
+	authsWrapper := struct {
+		Auths map[string]map[string]string `json:"auths"`
+	}{}
+
+	err := json.Unmarshal(rawCreds, &authsWrapper)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("Error reading secret %s contents - requeue the request", secret.Name))
+		return errors.Wrap(err, fmt.Sprintf("Error reading secret %s contents", secret.Name))
 	}
 
-	// Read each auth value and add to a registry dictionary
-	for _, creds := range config.Auths {
-		authRaw, err := base64.RawStdEncoding.DecodeString(creds.Auth)
+	for key, value := range authsWrapper.Auths {
+		authRaw, err := base64.StdEncoding.DecodeString(value["auth"])
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("Error base64 decoding secret %s - requeue the request", secret.Name))
+			return errors.Wrap(err, fmt.Sprintf("Error base64 decoding secret %s", secret.Name))
 		}
 
 		auth := string(authRaw)
 		parts := strings.Split(auth, ":")
 
-		obj[""] = processor.RegistryCredentials{
+		obj[key] = processor.RegistryCredentials{
 			Username: parts[0],
 			Password: parts[1],
 		}

@@ -28,7 +28,10 @@ type RegistriesConfigSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Regsitries is a list of container registries authentication credentials
+	/*
+	 Registries is a list of container registries with authentication credentials if needed. Images will be promoted in order
+	 how the registries are listed.
+	*/
 	// kubebuilder:validation:UniqueItems
 	Registries []Registry `json:"registries,omitempty"`
 }

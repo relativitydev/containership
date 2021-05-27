@@ -77,9 +77,6 @@ var (
 						"musl",
 						"glibc",
 					},
-					Destinations: []string{
-						"dockerhub-containership",
-					},
 				},
 			},
 		},
@@ -97,7 +94,7 @@ var _ = Describe("CMO Controller", func() {
 			By("Creating test secret")
 			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
 
-			By("Creating regsitries config")
+			By("Creating registries config")
 			Expect(k8sClient.Create(ctx, registriesConfig)).Should(Succeed())
 
 			rc := &v1beta2.RegistriesConfig{}
@@ -125,7 +122,7 @@ var _ = Describe("CMO Controller", func() {
 func Test_getRegistryCredentials(t *testing.T) {
 	type args struct {
 		secret *corev1.Secret
-		obj    map[string]processor.RegistryCredentials
+		obj    *processor.RegistryCredentials
 	}
 
 	tests := []struct {
@@ -141,10 +138,13 @@ func Test_getRegistryCredentials(t *testing.T) {
 						Name: "test-secret",
 					},
 					Data: map[string][]byte{
-						".dockerconfigjson": []byte("{\"auths\":{\"containership-docker\":{\"auth\":\"dGlnZXI6cGFzczExMw==\"}}}"),
+						".dockerconfigjson": []byte("{\"auths\":{\"containership-docker\":{\"auth\":\"Zm9vOmJhcg==\"}}}"),
 					},
 				},
-				obj: make(map[string]processor.RegistryCredentials),
+				obj: &processor.RegistryCredentials{
+					Username: "foo",
+					Password: "bar",
+				},
 			},
 			wantErr: false,
 		},

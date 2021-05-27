@@ -37,17 +37,15 @@ type Image struct {
 	// SourceRepository is where the image will be pulled from. It is the source of truth.
 	SourceRepository string `json:"sourceRepository"`
 
-	// TargetRepository is an optional field that allows the image repository to change in the destinations.
-	// If sourceRepository is "docker.io/library/busybox", setting targetRepository to "hello-world/busybox" will
-	// put tag the images in destinations with "hello-world/busybox"
+	/*
+	 TargetRepository is an optional field that allows the image repository to be renamed.
+	 If sourceRepository is "docker.io/library/busybox", setting targetRepository to "hello-world/busybox" will
+	 rename the image "hello-world/busybox"
+	*/
 	TargetRepository string `json:"targetRepository"`
 
-	// SupportedTags are the image tags that will pulled from the source repository. Any extra tags found in the destinations will be deleted.
+	// SupportedTags are the image tags that will pulled from the source repository. Any extra tags found in the target image destinations will be deleted.
 	SupportedTags []string `json:"supportedTags,omitempty"`
-
-	// Destinations are the repositories the source will be pushed to. Destinations are pushed to in order of declaration.
-	// The destination names must match the name of the registry defined in RegistriesConfig CR.
-	Destinations []string `json:"destinations"`
 }
 
 // ContainerManagementObjectStatus defines the observed state of ContainerManagementObject

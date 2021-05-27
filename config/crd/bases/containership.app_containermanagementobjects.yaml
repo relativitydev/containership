@@ -43,34 +43,24 @@ spec:
                   kubebuilder:validation:Required
                 items:
                   properties:
-                    destinations:
-                      description: Destinations are the repositories the source will
-                        be pushed to. Destinations are pushed to in order of declaration.
-                        The destination names must match the name of the registry
-                        defined in RegistriesConfig CR.
-                      items:
-                        type: string
-                      type: array
                     sourceRepository:
                       description: SourceRepository is where the image will be pulled
                         from. It is the source of truth.
                       type: string
                     supportedTags:
                       description: SupportedTags are the image tags that will pulled
-                        from the source repository. Any extra tags found in the destinations
-                        will be deleted.
+                        from the source repository. Any extra tags found in the target
+                        image destinations will be deleted.
                       items:
                         type: string
                       type: array
                     targetRepository:
-                      description: TargetRepository is an optional field that allows
-                        the image repository to change in the destinations. If sourceRepository
-                        is "docker.io/library/busybox", setting targetRepository to
-                        "hello-world/busybox" will put tag the images in destinations
-                        with "hello-world/busybox"
+                      description: "\t TargetRepository is an optional field that
+                        allows the image repository to be renamed. \t If sourceRepository
+                        is \"docker.io/library/busybox\", setting targetRepository
+                        to \"hello-world/busybox\" will \t rename the image \"hello-world/busybox\""
                       type: string
                   required:
-                  - destinations
                   - sourceRepository
                   - targetRepository
                   type: object

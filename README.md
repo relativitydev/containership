@@ -44,7 +44,7 @@ make build
 > Note: The first time you run the container it will take some time to build and install the tooling. The image
 > will be cached so this is only required the first time.
 
-### Locally directly
+### Run Locally
 
 This project is using [Operator SDK framework](https://github.com/operator-framework/operator-sdk), make sure you
 have installed the right version. To check the current version used for Containership check the `OPERATOR_RELEASE_VERSION` in file
@@ -75,10 +75,10 @@ go env -w GOPROXY=https://proxy.golang.org,direct GOSUMDB=sum.golang.org
 
 ## Deploying
 
-### Custom Containership locally outside cluster
+### Custom Containership locally outside of a Kubernetes cluster
 
 The Operator SDK framework allows you to run the operator/controller locally outside the cluster without
-a need of building an image. This should help during development/debugging of Containership Operator or Gates.
+building an image. This should help during development/debugging of Containership Operator or Gates.
 > Note: This approach works only on Linux or macOS.
 
 

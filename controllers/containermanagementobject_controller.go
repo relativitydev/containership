@@ -86,35 +86,33 @@ func (r *ContainerManagementObjectReconciler) Reconcile(ctx context.Context, req
 		return ctrl.Result{}, errors.Wrap(err, "Error reading registriesConfig list - requeue the request")
 	}
 
-	// Get secret names to look up
-	secretNames := []string{}
+	/*
+		  Get registry credentials. This will only look at the first RegistryConfig returned.
+			Supporting multiple RegistriesConfigs and a consistent registry promotion order will
+			require more complex logic. For now, just one RegistriesConfig should exist.
+	*/
+	for _, registry := range registryConfigs.Items[0].Spec.Registries {
+		config := &processor.RegistryCredentials{
+			LoginURI: registry.URI,
+		}
 
-	for _, registryConfig := range registryConfigs.Items {
-		for _, registry := range registryConfig.Spec.Registries {
-			if registry.SecretName != "" {
-				secretNames = append(secretNames, registry.SecretName)
+		if registry.SecretName != "" {
+			secretInstance := &corev1.Secret{}
+
+			err = r.Client.Get(ctx, types.NamespacedName{
+				Name:      registry.SecretName,
+				Namespace: req.Namespace,
+			}, secretInstance)
+			if err != nil {
+				return ctrl.Result{}, errors.Wrap(err, fmt.Sprintf("Error reading secret %s - requeue the request", registry.SecretName))
+			}
+
+			err = getRegistryCredentials(secretInstance, config)
+			if err != nil {
+				return ctrl.Result{}, errors.Wrap(err, "Error reading secret context - requeue the request")
 			}
 		}
-	}
 
-	// Get registry credentials from secrets
-	registryCredentialsDict := map[string]processor.RegistryCredentials{}
-
-	for _, secretName := range secretNames {
-		secretInstance := &corev1.Secret{}
-
-		err = r.Client.Get(ctx, types.NamespacedName{
-			Name:      secretName,
-			Namespace: req.Namespace,
-		}, secretInstance)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, fmt.Sprintf("Error reading secret %s - requeue the request", secretName))
-		}
-
-		err = getRegistryCredentials(secretInstance, registryCredentialsDict)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "Error reading secret context - requeue the request")
-		}
 	}
 
 	// TODO: Call image promotion processor logic
@@ -141,7 +139,7 @@ func ignoreDeletionPredicate() predicate.Predicate {
 }
 
 // getRegistryCredentials get the creds for each registry's auth config
-func getRegistryCredentials(secret *corev1.Secret, obj map[string]processor.RegistryCredentials) error {
+func getRegistryCredentials(secret *corev1.Secret, obj *processor.RegistryCredentials) error {
 	// Base64 decode the secret property value
 	rawCreds := secret.Data[".dockerconfigjson"]
 	if len(rawCreds) == 0 {
@@ -149,13 +147,15 @@ func getRegistryCredentials(secret *corev1.Secret, obj map[string]processor.Regi
 	}
 
 	/*
-		{
-			"auths": {
-				"containership-docker": {
-					"auth": "dGlnZXI6cGFzczExMw=="
+		Example docker credentials
+		https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#log-in-to-docker
+			{
+				"auths": {
+					"containership-docker": {
+						"auth": "putyourauthhere" // should be base64 encoded
+					}
 				}
 			}
-		}
 	*/
 	authsWrapper := struct {
 		Auths map[string]map[string]string `json:"auths"`
@@ -166,7 +166,7 @@ func getRegistryCredentials(secret *corev1.Secret, obj map[string]processor.Regi
 		return errors.Wrap(err, fmt.Sprintf("Error reading secret %s contents", secret.Name))
 	}
 
-	for key, value := range authsWrapper.Auths {
+	for _, value := range authsWrapper.Auths {
 		authRaw, err := base64.StdEncoding.DecodeString(value["auth"])
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("Error base64 decoding secret %s", secret.Name))
@@ -175,10 +175,8 @@ func getRegistryCredentials(secret *corev1.Secret, obj map[string]processor.Regi
 		auth := string(authRaw)
 		parts := strings.Split(auth, ":")
 
-		obj[key] = processor.RegistryCredentials{
-			Username: parts[0],
-			Password: parts[1],
-		}
+		obj.Username = parts[0]
+		obj.Password = parts[1]
 	}
 
 	return nil

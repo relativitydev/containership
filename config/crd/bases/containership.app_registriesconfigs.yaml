@@ -37,8 +37,9 @@ spec:
             description: RegistriesConfigSpec defines the desired state of RegistriesConfig
             properties:
               registries:
-                description: Regsitries is a list of container registries authentication
-                  credentials kubebuilder:validation:UniqueItems
+                description: "\t Registries is a list of container registries with
+                  authentication credentials if needed. Images will be promoted in
+                  order \t how the registries are listed. \n kubebuilder:validation:UniqueItems"
                 items:
                   properties:
                     name:

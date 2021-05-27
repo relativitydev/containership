@@ -57,7 +57,7 @@ var (
 				{
 					Name: "dockerhub-public",
 					URI:  "docker.io",
-					// SecretName: "", // no secret needed. This is a public regsitry
+					// SecretName: "", // no secret needed. This is a public registry
 				},
 			},
 		},

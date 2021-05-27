@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
 	"testing"
 
 	"github.com/relativitydev/containership/pkg/processor"
@@ -27,7 +26,6 @@ import (
 
 func Test_getRegistryCredentials(t *testing.T) {
 	type args struct {
-		ctx    context.Context
 		secret *corev1.Secret
 		obj    map[string]processor.RegistryCredentials
 	}
@@ -40,7 +38,6 @@ func Test_getRegistryCredentials(t *testing.T) {
 		{
 			name: "Get registry credentials",
 			args: args{
-				ctx: context.TODO(),
 				secret: &corev1.Secret{
 					ObjectMeta: v1.ObjectMeta{
 						Name: "test-secret",
@@ -57,7 +54,7 @@ func Test_getRegistryCredentials(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := getRegistryCredentials(tt.args.ctx, tt.args.secret, tt.args.obj); (err != nil) != tt.wantErr {
+			if err := getRegistryCredentials(tt.args.secret, tt.args.obj); (err != nil) != tt.wantErr {
 				t.Errorf("getRegistryCredentials() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

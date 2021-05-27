@@ -51,7 +51,7 @@ spec:
                         as the operator. Secret type must be kubernetes.io/dockerconfigjson
                       type: string
                     uri:
-                      description: 'Uri describes the URI for the regsitry (example:
+                      description: 'Uri describes the URI for the registry (example:
                         docker.io)'
                       type: string
                   required:

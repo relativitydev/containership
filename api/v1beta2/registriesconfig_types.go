@@ -37,8 +37,8 @@ type Registry struct {
 	// Name is a unique name for the registry. This name is the key to match when listed as an image destination
 	Name string `json:"name"`
 
-	// Uri describes the URI for the regsitry (example: docker.io)
-	Uri string `json:"uri"`
+	// Uri describes the URI for the registry (example: docker.io)
+	URI string `json:"uri"`
 
 	// The name of the secret containing the authorization credentials for the registry. It must exist in the same namespace as the operator. Secret type must be kubernetes.io/dockerconfigjson
 	SecretName string `json:"secretName,omitempty"`

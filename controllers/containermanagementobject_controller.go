@@ -29,7 +29,6 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -47,9 +46,8 @@ var interval = 600
 // ContainerManagementObjectReconciler reconciles a ContainerManagementObject object
 type ContainerManagementObjectReconciler struct {
 	client.Client
-	Log      logr.Logger
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	Log    logr.Logger
+	Scheme *runtime.Scheme
 }
 
 //+kubebuilder:rbac:groups=containership.app,resources=containermanagementobjects,verbs=get;list;watch;create;update;patch;delete
@@ -84,6 +82,7 @@ func (r *ContainerManagementObjectReconciler) Reconcile(ctx context.Context, req
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
+
 		return ctrl.Result{}, errors.Wrap(err, "Error reading registriesConfig list - requeue the request")
 	}
 
@@ -111,7 +110,7 @@ func (r *ContainerManagementObjectReconciler) Reconcile(ctx context.Context, req
 			return ctrl.Result{}, errors.Wrap(err, fmt.Sprintf("Error reading secret %s - requeue the request", secretName))
 		}
 
-		err = getRegistryCredentials(ctx, secretInstance, registryCredentialsDict)
+		err = getRegistryCredentials(secretInstance, registryCredentialsDict)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "Error reading secret context - requeue the request")
 		}
@@ -141,7 +140,7 @@ func ignoreDeletionPredicate() predicate.Predicate {
 }
 
 // getRegistryCredentials get the creds for each registry's auth config
-func getRegistryCredentials(ctx context.Context, secret *corev1.Secret, obj map[string]processor.RegistryCredentials) error {
+func getRegistryCredentials(secret *corev1.Secret, obj map[string]processor.RegistryCredentials) error {
 	// Base64 decode the secret property value
 	rawCreds := secret.Data[".dockerconfigjson"]
 	if len(rawCreds) == 0 {

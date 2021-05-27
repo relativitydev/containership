@@ -5,7 +5,8 @@ metadata:
 spec:
   images:
     - sourceRepository: docker.io/library/busybox
+      targetRepository: busybox
       supportedTags:
         - latest
       destinations:
-        - relativitydev
+        - dockerhub-relativitydev

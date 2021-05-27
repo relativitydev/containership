@@ -40,12 +40,20 @@ IMG ?= controller:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
+KIND_CLUSTER_NAME ?= "containership-cluster"
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
 else
 GOBIN=$(shell go env GOBIN)
 endif
+
+# Setting SHELL to bash allows bash commands to be executed by recipes.
+# This is a requirement for 'setup-envtest.sh' in the test target.
+# Options are set to exit when a recipe line exits non-zero or a piped command fails.
+SHELL = /usr/bin/env bash -o pipefail
+.SHELLFLAGS = -ec
 
 all: build
 
@@ -192,3 +200,20 @@ catalog-build: opm ## Build a catalog image.
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
+
+# Build a local Kind cluster to run tests against
+kind-start:
+ifeq (1, $(shell kind get clusters | grep ${KIND_CLUSTER_NAME} | wc -l))
+	@echo "Cluster already exists"
+else
+	@echo "Creating Cluster"
+	kind create cluster --name ${KIND_CLUSTER_NAME} --config kind-config.yaml
+	kubectl config delete-cluster kind-${KIND_CLUSTER_NAME}
+	kind get kubeconfig --internal --name ${KIND_CLUSTER_NAME} > ~/.kube/kind-config
+	KUBECONFIG=~/.kube/config:~/.kube/kind-config kubectl config view --flatten > mergedkub && mv mergedkub ~/.kube/config
+endif
+
+# Delete your local kind cluster
+kind-stop:
+	@echo "Deleting Kind Cluster"
+	kind delete cluster --name ${KIND_CLUSTER_NAME}

@@ -37,6 +37,11 @@ type Image struct {
 	// SourceRepository is where the image will be pulled from. It is the source of truth.
 	SourceRepository string `json:"sourceRepository"`
 
+	// TargetRepository is an optional field that allows the image repository to change in the destinations.
+	// If sourceRepository is "docker.io/library/busybox", setting targetRepository to "hello-world/busybox" will
+	// put tag the images in destinations with "hello-world/busybox"
+	TargetRepository string `json:"targetRepository"`
+
 	// SupportedTags are the image tags that will pulled from the source repository. Any extra tags found in the destinations will be deleted.
 	SupportedTags []string `json:"supportedTags,omitempty"`
 

@@ -4,6 +4,6 @@ metadata:
   name: registriesconfig-sample
 spec:
   registries:
-    - name: relativitydev
+    - name: dockerhub-relativitydev
       uri: docker.io/relativitydev
       secretName: registries-secret

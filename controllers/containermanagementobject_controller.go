@@ -86,7 +86,7 @@ func (r *ContainerManagementObjectReconciler) Reconcile(ctx context.Context, req
 		return ctrl.Result{}, errors.Wrap(err, "Error reading registriesConfig list - requeue the request")
 	}
 
-	// Get registry credentials
+	// Get secret names to look up
 	secretNames := []string{}
 
 	for _, registryConfig := range registryConfigs.Items {
@@ -97,6 +97,7 @@ func (r *ContainerManagementObjectReconciler) Reconcile(ctx context.Context, req
 		}
 	}
 
+	// Get registry credentials from secrets
 	registryCredentialsDict := map[string]processor.RegistryCredentials{}
 
 	for _, secretName := range secretNames {

@@ -17,12 +17,110 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"testing"
+	"time"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/relativitydev/containership/api/v1beta2"
 	"github.com/relativitydev/containership/pkg/processor"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
+
+var (
+	secret = &corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "registry-auth-creds",
+			Namespace: "default",
+		},
+		Type: corev1.SecretTypeDockerConfigJson,
+		Data: map[string][]byte{
+			".dockerconfigjson": []byte("{\"auths\":{\"dockerhub-containership\":{\"auth\":\"dGlnZXI6cGFzczExMw==\"}}}"),
+		},
+	}
+
+	registriesConfig = &v1beta2.RegistriesConfig{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "registries",
+			Namespace: "default",
+		},
+		Spec: v1beta2.RegistriesConfigSpec{
+			Registries: []v1beta2.Registry{
+				{
+					Name:       "dockerhub-containership",
+					URI:        "docker.io/relativitydev",
+					SecretName: "registry-auth-creds",
+				},
+				{
+					Name: "dockerhub-public",
+					URI:  "docker.io",
+					// SecretName: "", // no secret needed. This is a public regsitry
+				},
+			},
+		},
+	}
+
+	containerManagementObject = &v1beta2.ContainerManagementObject{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "test-images",
+			Namespace: "default",
+		},
+		Spec: v1beta2.ContainerManagementObjectSpec{
+			Images: []v1beta2.Image{
+				{
+					SourceRepository: "docker.io/library/busybox",
+					SupportedTags: []string{
+						"latest",
+						"musl",
+						"glibc",
+					},
+					Destinations: []string{
+						"dockerhub-containership",
+					},
+				},
+			},
+		},
+	}
+)
+
+var _ = Describe("CMO Controller", func() {
+	const timeout = time.Second * 20
+
+	ctx := context.Background()
+
+	Context("CMO", func() {
+		It("Should read CMO and RegistryConfig", func() {
+
+			By("Creating test secret")
+			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
+
+			By("Creating regsitries config")
+			Expect(k8sClient.Create(ctx, registriesConfig)).Should(Succeed())
+
+			rc := &v1beta2.RegistriesConfig{}
+			Eventually(func() error {
+				return k8sClient.Get(context.Background(), types.NamespacedName{
+					Name:      registriesConfig.Name,
+					Namespace: registriesConfig.Namespace,
+				}, rc)
+			}, timeout, interval).Should(Succeed())
+
+			By("Creating cmo")
+			Expect(k8sClient.Create(ctx, containerManagementObject)).Should(Succeed())
+
+			cmo := &v1beta2.ContainerManagementObject{}
+			Eventually(func() error {
+				return k8sClient.Get(context.Background(), types.NamespacedName{
+					Name:      containerManagementObject.Name,
+					Namespace: containerManagementObject.Namespace,
+				}, cmo)
+			}, timeout, interval).Should(Succeed())
+		})
+	})
+})
 
 func Test_getRegistryCredentials(t *testing.T) {
 	type args struct {

@@ -62,9 +62,17 @@ spec:
                       items:
                         type: string
                       type: array
+                    targetRepository:
+                      description: TargetRepository is an optional field that allows
+                        the image repository to change in the destinations. If sourceRepository
+                        is "docker.io/library/busybox", setting targetRepository to
+                        "hello-world/busybox" will put tag the images in destinations
+                        with "hello-world/busybox"
+                      type: string
                   required:
                   - destinations
                   - sourceRepository
+                  - targetRepository
                   type: object
                 type: array
             required:

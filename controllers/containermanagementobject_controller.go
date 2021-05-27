@@ -112,7 +112,6 @@ func (r *ContainerManagementObjectReconciler) Reconcile(ctx context.Context, req
 				return ctrl.Result{}, errors.Wrap(err, "Error reading secret context - requeue the request")
 			}
 		}
-
 	}
 
 	// TODO: Call image promotion processor logic

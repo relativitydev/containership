@@ -1,100 +1,114 @@
 # Containership
 
-**NOTE: This version only supports promotion to Azure container registries and using Palo Alto's Prisma for vulnerability scanning. A new, cloud agnostic, version is in development. It will work with any OCI compliant container registry and support a variety of promotion gates.**
+Containership is a kubernetes operator that automates image management responsibilities. 
 
-A kubernetes operator automating container image promotion and deletion across registries. It includes gates for vulnerability scanning and protection against deleting images still being used. 
+Features include:
+- pushing and pulling images into multiple container registries
+- delete old image tags
 
-Built with Operator-SDK. For information on how to use Operator-Sdk, visit their [website](https://sdk.operatorframework.io/docs/).
+Coming soon:
+- conditionally promote image based on gates
+- scan for images for security vulnerabilities
 
-Containership can be used to:
-- Define images configuration as code
-- Import images from external and internal sources to Azure Container Registries (ACR)
-- Conditionally promote images based on gates
-  - Use Prisma to only promote images with no security vulnerabilities
-  - Only delete images if they are not being run in a cluster
-- Supports Azure consumer and government regsitries
+## Table of Contents
+- [Building](#Building)
+- [Deploying](#Deploying)
 
-### Table of Contents
-- [Functionality and Usage](./docs/Usage.md)
-- [Gate Directory](./pkg/gates/README.md)
+## Building
 
-## Testing
+### Quick start with [Visual Studio Code Remote - Containers](https://code.visualstudio.com/docs/remote/containers)
 
-### Using a .env file
+This helps you pull and build quickly - dev containers launch the project inside a container with all the tooling
+required for a consistent and seamless developer experience.
 
-Environment variables are defined in `.env` in the project root. This centralized location is used for debugging and testing. It is not used in deployments.
+This means you don't have to install and configure your dev environment as the container handles this for you.
 
-```
-GOPATH=/home/vscode/go
-GO111MODULE=on
-WATCH_NAMESPACE=
-AZURE_GO_SDK_LOG_LEVEL=
-AZURE_TENANT_ID=
-AZURE_CLIENT_ID=
-AZURE_CLIENT_SECRET=<super-secret>
-AZURE_REGISTRY_SUBSCRIPTION_ID=
-AZURE_REGISTRY_RESOURCE_GROUP=
+To get started install [VSCode](https://code.visualstudio.com/) and the [Remote Containers extensions](
+https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
 
-PRISMA_VULNERABILITY_LEVEL=low
+Clone the repo and launch code:
 
-ALLOWED_DESTINATIONS="registryname.azurecr.io"
-
-REGISTRYNAME_USERNAME=
-REGISTRYNAME_PASSWORD=<super-secret>
-REGISTRYNAME_PRISMA_URL=prisma.example.com
-REGISTRYNAME_PRISMA_USERNAME=containership-user
-REGISTRYNAME_PRISMA_PASSWORD=<super-secret>
-
+```bash
+git clone git@github.com:relativitydev/containership.git
+cd containership
+code .
 ```
 
-### Run locally outside the cluster
+Once VSCode launches run `CTRL+SHIFT+P -> Remote-Containers: Reopen in container` and then use the integrated
+terminal to run:
 
-Run the operator locally while hitting a real cluster's APIs. `kubectl config current-context` is the cluster you will use.
-
-Install your CRDs into the cluster
-```
-make install
+```bash
+make build
 ```
 
-Apply your CR to the cluster
-```
-kubectl apply -f config/samples/containership_v1beta1_containermanagementobject.yaml
+> Note: The first time you run the container it will take some time to build and install the tooling. The image
+> will be cached so this is only required the first time.
+
+### Run Locally
+
+This project is using [Operator SDK framework](https://github.com/operator-framework/operator-sdk), make sure you
+have installed the right version. To check the current version used for Containership check the `OPERATOR_RELEASE_VERSION` in file
+[.devcontainer/Dockerfile](https://github.com/relativitydev/containership/blob/main/.devcontainer/Dockerfile).
+
+```bash
+git clone git@github.com:relativitydev/containership.git
+cd containership
+make build
 ```
 
-Run the operator against the cluster
-```
-make run
-```
+If the build process fails due to some "checksum mismatch" errors, make sure that `GOPROXY` and `GOSUMDB`
+ environment variables are set properly.
+With Go installation on Fedora, for example, it could happen they are wrong.
 
-### Debugging in VSCode
-
-You can also debug in VSCode with the ability to set breakpoints. There is already a debug configuration setup called "Containership" in `launch.json`.
-
-Again, you need to install your CRD and create your CRs. See above.
-
-### Unit Testing
-
-Business logic should live in the `/pkg` directory. Each must contain unit tests. All unit tests are called via
-```
-make test-pkg
+```bash
+go env GOPROXY GOSUMDB
+direct
+off
 ```
 
-It is also possible to run/debug individual tests, files and packages using VSCode.
+If not set properly you can just run.
+
+```bash
+go env -w GOPROXY=https://proxy.golang.org,direct GOSUMDB=sum.golang.org
+```
 
 
-### E2E Testing
+## Deploying
 
-To start up the kind test cluster run in terminal:
-```
-make kind-start
-```
-To run all the end to end tests (and unit tests) run in terminal:
-```
-make test
-```
-Once you are done testing, close your kind cluster by running in terminal:
-```
-make kind-stop
-```
+### Custom Containership locally outside of a Kubernetes cluster
 
-_Note: these tests typically take about 200s (Breakdown: 115s - E2E tests, 85s - pkg unit tests)._
+The Operator SDK framework allows you to run the operator/controller locally outside the cluster without
+building an image. This should help during development/debugging of Containership Operator or Gates.
+> Note: This approach works only on Linux or macOS.
+
+
+1. Deploy CRDs
+   ```bash
+   make install
+   ```
+2. Run the operator locally with the default Kubernetes config file present at `$HOME/.kube/config`
+ and change the operator log level via `--zap-log-level=` if needed
+   ```bash
+   make run ARGS="--zap-log-level=debug"
+   ```
+   
+## Miscellaneous
+
+### Setting log levels
+
+You can change default log levels for Containership Operator. Containership Operator uses
+ [Operator SDK logging](https://sdk.operatorframework.io/docs/building-operators/golang/references/logging/) mechanism.
+
+To change the logging level, find `--zap-log-level=` argument in Operator Deployment section in `config/manager/manager.yaml` file,
+ modify its value and redeploy.
+
+Allowed values are `debug`, `info`, `error`, or an integer value greater than `0`, specified as string
+
+Default value: `info`
+
+To change the logging format, find `--zap-encoder=` argument in Operator Deployment section in `config/manager/manager.yaml` file,
+ modify its value and redeploy.
+
+Allowed values are `json` and `console`
+
+Default value: `console`

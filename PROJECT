@@ -1,10 +1,25 @@
 domain: containership.app
-layout: go.kubebuilder.io/v2
+layout:
+- go.kubebuilder.io/v3
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: containership
 repo: github.com/relativitydev/containership
 resources:
-- group: containership
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: containership.app
   kind: ContainerManagementObject
-  version: v1beta1
-version: 3-alpha
-plugins:
-  go.operator-sdk.io/v2-alpha: {}
+  path: github.com/relativitydev/containership/api/v1beta2
+  version: v1beta2
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: containership.app
+  kind: RegistriesConfig
+  path: github.com/relativitydev/containership/api/v1beta2
+  version: v1beta2
+version: "3"

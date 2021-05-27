@@ -1,4 +1,5 @@
-## This file is auto-generated, do not modify ##
+## Append samples you want in your CSV to this file as resources ##
 resources:
-  - containership_v1alpha1_containermanagementobject.yaml
-  - containership_v1beta1_containermanagementobject.yaml
+- _v1beta2_containermanagementobject.yaml
+- _v1beta2_registriesconfig.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples

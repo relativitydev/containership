@@ -1,0 +1,9 @@
+apiVersion: containership.app/v1beta2
+kind: RegistriesConfig
+metadata:
+  name: registriesconfig-sample
+spec:
+  registries:
+    - name: dockerhub-relativitydev
+      uri: docker.io/relativitydev
+      secretName: registries-secret

@@ -86,6 +86,8 @@ func (r *ContainerManagementObjectReconciler) Reconcile(ctx context.Context, req
 		return ctrl.Result{}, errors.Wrap(err, "Error reading registriesConfig list - requeue the request")
 	}
 
+	registryCreds := []processor.RegistryCredentials{}
+
 	/*
 		  Get registry credentials. This will only look at the first RegistryConfig returned.
 			Supporting multiple RegistriesConfigs and a consistent registry promotion order will
@@ -112,9 +114,15 @@ func (r *ContainerManagementObjectReconciler) Reconcile(ctx context.Context, req
 				return ctrl.Result{}, errors.Wrap(err, "Error reading secret context - requeue the request")
 			}
 		}
+
+		registryCreds = append(registryCreds, *config)
 	}
 
-	// TODO: Call image promotion processor logic
+	// Run image promotion processor
+	err = processor.Run(instance.Spec.Images, registryCreds)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "Image promotion processor failed - requeue the request")
+	}
 
 	return ctrl.Result{RequeueAfter: time.Second * time.Duration(interval)}, nil
 }

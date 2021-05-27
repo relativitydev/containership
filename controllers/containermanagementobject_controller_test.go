@@ -72,6 +72,7 @@ var (
 			Images: []v1beta2.Image{
 				{
 					SourceRepository: "docker.io/library/busybox",
+					TargetRepository: "busybox",
 					SupportedTags: []string{
 						"latest",
 						"musl",

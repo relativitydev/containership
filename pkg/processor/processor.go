@@ -1,7 +1,11 @@
 package processor
 
 import (
-	"github.com/heroku/docker-registry-client/registry"
+	"fmt"
+
+	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/pkg/errors"
 	containershipappv1beta2 "github.com/relativitydev/containership/api/v1beta2"
 )
@@ -23,10 +27,20 @@ func Run(images []containershipappv1beta2.Image, registries []RegistryCredential
 }
 
 func listTags(repository string, creds RegistryCredentials) ([]string, error) {
-	client, err := registry.New(creds.LoginURI, creds.Username, creds.Password)
+	ref, err := name.NewRepository(repository)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create docker client")
+		return nil, errors.Wrap(err, fmt.Sprintf("Failed to parse repository %s", repository))
 	}
 
-	return client.Tags(repository)
+	tags, err := remote.List(ref, remote.WithAuth(
+		&authn.Basic{
+			Username: creds.Username,
+			Password: creds.Password,
+		},
+	))
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("Failed to list tags in repository %s", repository))
+	}
+
+	return tags, nil
 }

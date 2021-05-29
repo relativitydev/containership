@@ -2,4 +2,5 @@
 resources:
 - _v1beta2_containermanagementobject.yaml
 - _v1beta2_registriesconfig.yaml
+- secret.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/ahmetb/go-linq"
+	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 	"github.com/pkg/errors"
 	containershipappv1beta2 "github.com/relativitydev/containership/api/v1beta2"
@@ -15,13 +16,23 @@ func Run(client RegistryClient, images []containershipappv1beta2.Image, registri
 	for _, imageConfig := range images {
 		currentSourceRepo := imageConfig.SourceRepository
 
+		// Set the target repository to match source if empty
+		if imageConfig.TargetRepository == "" {
+			repo, err := name.NewRepository(currentSourceRepo)
+			if err != nil {
+				return errors.Wrapf(err, "Source repository name parsing error %s", currentSourceRepo)
+			}
+
+			imageConfig.TargetRepository = repo.RepositoryStr()
+		}
+
 		for _, creds := range registries {
 			// List tags
 			targetTags, err := client.listTags(imageConfig.TargetRepository, creds)
 			if err != nil {
 				v, ok := err.(*transport.Error)
 				if ok && v.StatusCode == http.StatusNotFound {
-					// if error is because the repository isn't found, just move on. We'll create it later.
+					// repository isn't found, just move on. We'll create it later.
 				} else {
 					return errors.Wrap(err, "Failed to list tags")
 				}
@@ -33,17 +44,11 @@ func Run(client RegistryClient, images []containershipappv1beta2.Image, registri
 			for _, tag := range tagsToImport {
 				imageSourceFQN := currentSourceRepo + ":" + tag
 
-				imageDestinationFQDN := fmt.Sprintf("%s/%s:%s", creds.Hostname, imageConfig.TargetRepository, tag)
+				imageDestinationFQN := fmt.Sprintf("%s/%s:%s", creds.Hostname, imageConfig.TargetRepository, tag)
 
-				// Pull images to add
-				img, err := client.pull(imageSourceFQN, creds)
+				err = client.copy(imageSourceFQN, imageDestinationFQN, creds)
 				if err != nil {
-					return errors.Wrapf(err, "Failed to pull image %s", imageSourceFQN)
-				}
-
-				// Push to destination
-				if err := client.push(imageDestinationFQDN, img, creds); err != nil {
-					return errors.Wrapf(err, "Failed to push image %s", imageDestinationFQDN)
+					return errors.Wrapf(err, "Failed to copy image from %s to %s", imageSourceFQN, imageDestinationFQN)
 				}
 			}
 

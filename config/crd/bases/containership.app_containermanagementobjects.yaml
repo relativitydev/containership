@@ -62,7 +62,6 @@ spec:
                       type: string
                   required:
                   - sourceRepository
-                  - targetRepository
                   type: object
                 type: array
             required:

@@ -126,16 +126,9 @@ func TestRun(t *testing.T) {
 	for _, tt := range tests {
 		mockRegistryClient := &MockRegistryClient{}
 
-		image, err := tt.mockReturns[1].(*remote.Descriptor).Image()
-		if err != nil {
-			t.Errorf("Error mocking v1.Iamge")
-		}
-
 		mockRegistryClient.On("listTags", tt.args.images[0].TargetRepository, tt.args.registries[0]).Return(tt.mockReturns[0], nil)
 
-		mockRegistryClient.On("pull", tt.args.images[0].SourceRepository+":glibc", tt.args.registries[0]).Return(image, nil)
-
-		mockRegistryClient.On("push", fmt.Sprintf("%s/%s:%s", tt.args.registries[0].Hostname, tt.args.images[0].TargetRepository, "glibc"), image, tt.args.registries[0]).Return(nil)
+		mockRegistryClient.On("copy", fmt.Sprintf("%s:%s", tt.args.images[0].SourceRepository, "glibc"), fmt.Sprintf("%s/%s:%s", tt.args.registries[0].Hostname, tt.args.images[0].TargetRepository, "glibc"), tt.args.registries[0]).Return(nil)
 
 		t.Run(tt.name, func(t *testing.T) {
 			if err := Run(mockRegistryClient, tt.args.images, tt.args.registries); (err != nil) != tt.wantErr {

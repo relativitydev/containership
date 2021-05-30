@@ -42,7 +42,7 @@ type Image struct {
 	 If sourceRepository is "docker.io/library/busybox", setting targetRepository to "hello-world/busybox" will
 	 rename the image "hello-world/busybox"
 	*/
-	TargetRepository string `json:"targetRepository"`
+	TargetRepository string `json:"targetRepository,omitempty"`
 
 	// SupportedTags are the image tags that will pulled from the source repository. Any extra tags found in the target image destinations will be deleted.
 	SupportedTags []string `json:"supportedTags,omitempty"`

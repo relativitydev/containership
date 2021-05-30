@@ -3,7 +3,6 @@ package processor
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/ahmetb/go-linq"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -41,6 +40,7 @@ func Run(client RegistryClient, images []containershipappv1beta2.Image, registri
 			// Determine which tags should be imported and which should be deleted
 			tagsToDelete, tagsToImport := populateTagArrays(targetTags, imageConfig.SupportedTags)
 
+			// Copy the supported tags from source to destination
 			for _, tag := range tagsToImport {
 				imageSourceFQN := currentSourceRepo + ":" + tag
 
@@ -52,7 +52,15 @@ func Run(client RegistryClient, images []containershipappv1beta2.Image, registri
 				}
 			}
 
-			println(strings.Join(tagsToDelete, ","))
+			// Delete the unsupported tags
+			for _, tag := range tagsToDelete {
+				imageDestinationFQN := fmt.Sprintf("%s/%s:%s", creds.Hostname, imageConfig.TargetRepository, tag)
+
+				err = client.delete(imageDestinationFQN, creds)
+				if err != nil {
+					return errors.Wrapf(err, "Failed to delete image from %s", imageDestinationFQN)
+				}
+			}
 
 			// Set the next registry hop for the next loop
 			currentSourceRepo = creds.Hostname + "/" + imageConfig.TargetRepository

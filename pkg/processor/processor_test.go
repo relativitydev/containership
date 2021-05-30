@@ -115,7 +115,7 @@ func TestRun(t *testing.T) {
 				},
 			},
 			mockReturns: []interface{}{
-				[]string{"latest", "musl"},
+				[]string{"latest", "musl", "tagToDelete"},
 			},
 			wantErr: false,
 		},
@@ -127,6 +127,8 @@ func TestRun(t *testing.T) {
 		mockRegistryClient.On("listTags", tt.args.images[0].TargetRepository, tt.args.registries[0]).Return(tt.mockReturns[0], nil)
 
 		mockRegistryClient.On("copy", fmt.Sprintf("%s:%s", tt.args.images[0].SourceRepository, "glibc"), fmt.Sprintf("%s/%s:%s", tt.args.registries[0].Hostname, tt.args.images[0].TargetRepository, "glibc"), tt.args.registries[0]).Return(nil)
+
+		mockRegistryClient.On("delete", fmt.Sprintf("%s/%s:%s", tt.args.registries[0].Hostname, tt.args.images[0].TargetRepository, "tagToDelete"), tt.args.registries[0]).Return(nil)
 
 		t.Run(tt.name, func(t *testing.T) {
 			if err := Run(mockRegistryClient, tt.args.images, tt.args.registries); (err != nil) != tt.wantErr {

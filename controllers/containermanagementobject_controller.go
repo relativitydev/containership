@@ -120,6 +120,7 @@ func (r *ContainerManagementObjectReconciler) Reconcile(ctx context.Context, req
 
 	// Run image promotion processor
 	client := processor.NewRegistryClient()
+
 	err = processor.Run(client, instance.Spec.Images, registryCreds)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "Image promotion processor failed - requeue the request")

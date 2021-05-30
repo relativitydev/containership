@@ -51,12 +51,12 @@ var (
 			Registries: []v1beta2.Registry{
 				{
 					Name:       "dockerhub-containership",
-					URI:        "docker.io/relativitydev",
+					Hostname:   "docker.io/relativitydev",
 					SecretName: "registry-auth-creds",
 				},
 				{
-					Name: "dockerhub-public",
-					URI:  "docker.io",
+					Name:     "dockerhub-public",
+					Hostname: "docker.io",
 					// SecretName: "", // no secret needed. This is a public registry
 				},
 			},

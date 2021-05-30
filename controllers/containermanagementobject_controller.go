@@ -95,7 +95,7 @@ func (r *ContainerManagementObjectReconciler) Reconcile(ctx context.Context, req
 	*/
 	for _, registry := range registryConfigs.Items[0].Spec.Registries {
 		config := &processor.RegistryCredentials{
-			LoginURI: registry.URI,
+			Hostname: registry.Hostname,
 		}
 
 		if registry.SecretName != "" {
@@ -119,7 +119,8 @@ func (r *ContainerManagementObjectReconciler) Reconcile(ctx context.Context, req
 	}
 
 	// Run image promotion processor
-	err = processor.Run(instance.Spec.Images, registryCreds)
+	client := processor.NewRegistryClient()
+	err = processor.Run(client, instance.Spec.Images, registryCreds)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "Image promotion processor failed - requeue the request")
 	}

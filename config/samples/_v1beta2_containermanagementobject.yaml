@@ -4,7 +4,7 @@ metadata:
   name: containermanagementobject-sample
 spec:
   images:
-    - sourceRepository: docker.io/library/busybox
-      targetRepository: busybox
+    - sourceRepository: busybox # docker.io/library is default
+      targetRepository: relativitydev/containership
       supportedTags:
         - latest

@@ -42,6 +42,10 @@ spec:
                   order \t how the registries are listed. \n kubebuilder:validation:UniqueItems"
                 items:
                   properties:
+                    hostname:
+                      description: 'Hostname describes the domain for the registry
+                        (example: docker.io)'
+                      type: string
                     name:
                       description: Name is a unique name for the registry. This name
                         is the key to match when listed as an image destination
@@ -51,13 +55,9 @@ spec:
                         credentials for the registry. It must exist in the same namespace
                         as the operator. Secret type must be kubernetes.io/dockerconfigjson
                       type: string
-                    uri:
-                      description: 'Uri describes the URI for the registry (example:
-                        docker.io)'
-                      type: string
                   required:
+                  - hostname
                   - name
-                  - uri
                   type: object
                 type: array
             type: object

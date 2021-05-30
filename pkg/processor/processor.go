@@ -54,7 +54,7 @@ func Run(client RegistryClient, images []containershipappv1beta2.Image, registri
 
 			println(strings.Join(tagsToDelete, ","))
 
-			// Set the next regsitry hop for the next loop
+			// Set the next registry hop for the next loop
 			currentSourceRepo = creds.Hostname + "/" + imageConfig.TargetRepository
 		}
 	}

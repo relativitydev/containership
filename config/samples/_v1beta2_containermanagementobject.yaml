@@ -5,6 +5,7 @@ metadata:
 spec:
   images:
     - sourceRepository: busybox # docker.io/library is default
-      targetRepository: relativitydev/containership
+      targetRepository: relativitydev/busybox
       supportedTags:
+        - glibc
         - latest

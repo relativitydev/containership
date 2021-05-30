@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"time"
 
@@ -106,7 +105,7 @@ func (r *ContainerManagementObjectReconciler) Reconcile(ctx context.Context, req
 				Namespace: req.Namespace,
 			}, secretInstance)
 			if err != nil {
-				return ctrl.Result{}, errors.Wrap(err, fmt.Sprintf("Error reading secret %s - requeue the request", registry.SecretName))
+				return ctrl.Result{}, errors.Wrapf(err, "Error reading secret %s - requeue the request", registry.SecretName)
 			}
 
 			err = getRegistryCredentials(secretInstance, config)
@@ -172,13 +171,13 @@ func getRegistryCredentials(secret *corev1.Secret, obj *processor.RegistryCreden
 
 	err := json.Unmarshal(rawCreds, &authsWrapper)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("Error reading secret %s contents", secret.Name))
+		return errors.Wrapf(err, "Error reading secret %s contents", secret.Name)
 	}
 
 	for _, value := range authsWrapper.Auths {
 		authRaw, err := base64.StdEncoding.DecodeString(value["auth"])
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("Error base64 decoding secret %s", secret.Name))
+			return errors.Wrapf(err, "Error base64 decoding secret %s", secret.Name)
 		}
 
 		auth := string(authRaw)

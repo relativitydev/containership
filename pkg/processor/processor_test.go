@@ -1,9 +1,11 @@
 package processor
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 	containershipappv1beta2 "github.com/relativitydev/containership/api/v1beta2"
 )
 
@@ -86,12 +88,13 @@ func TestRun(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
+		name        string
+		args        args
+		mockReturns []interface{}
+		wantErr     bool
 	}{
 		{
-			name: "Something",
+			name: "busybox",
 			args: args{
 				images: []containershipappv1beta2.Image{
 					{
@@ -112,14 +115,27 @@ func TestRun(t *testing.T) {
 					},
 				},
 			},
+			mockReturns: []interface{}{
+				[]string{"latest", "musl"},
+				&remote.Descriptor{},
+			},
 			wantErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		mockRegistryClient := &MockRegistryClient{}
-		// We probably need to pass in the return value as args at some point so more test cases can be created
-		mockRegistryClient.On("listTags", tt.args.images[0].TargetRepository, tt.args.registries[0]).Return([]string{"latest", "musl"}, nil)
+
+		image, err := tt.mockReturns[1].(*remote.Descriptor).Image()
+		if err != nil {
+			t.Errorf("Error mocking v1.Iamge")
+		}
+
+		mockRegistryClient.On("listTags", tt.args.images[0].TargetRepository, tt.args.registries[0]).Return(tt.mockReturns[0], nil)
+
+		mockRegistryClient.On("pull", tt.args.images[0].SourceRepository+":glibc", tt.args.registries[0]).Return(image, nil)
+
+		mockRegistryClient.On("push", fmt.Sprintf("%s/%s:%s", tt.args.registries[0].Hostname, tt.args.images[0].TargetRepository, "glibc"), image, tt.args.registries[0]).Return(nil)
 
 		t.Run(tt.name, func(t *testing.T) {
 			if err := Run(mockRegistryClient, tt.args.images, tt.args.registries); (err != nil) != tt.wantErr {

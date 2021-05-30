@@ -1,6 +1,7 @@
 package processor
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -12,6 +13,8 @@ import (
 
 func Run(client RegistryClient, images []containershipappv1beta2.Image, registries []RegistryCredentials) error {
 	for _, imageConfig := range images {
+		currentSourceRepo := imageConfig.SourceRepository
+
 		for _, creds := range registries {
 			// List tags
 			targetTags, err := client.listTags(imageConfig.TargetRepository, creds)
@@ -24,11 +27,30 @@ func Run(client RegistryClient, images []containershipappv1beta2.Image, registri
 				}
 			}
 
-			// determine which tags should be imported and which should be deleted
+			// Determine which tags should be imported and which should be deleted
 			tagsToDelete, tagsToImport := populateTagArrays(targetTags, imageConfig.SupportedTags)
 
-			println(strings.Join(tagsToImport, ","))
+			for _, tag := range tagsToImport {
+				imageSourceFQN := currentSourceRepo + ":" + tag
+
+				imageDestinationFQDN := fmt.Sprintf("%s/%s:%s", creds.Hostname, imageConfig.TargetRepository, tag)
+
+				// Pull images to add
+				img, err := client.pull(imageSourceFQN, creds)
+				if err != nil {
+					return errors.Wrapf(err, "Failed to pull image %s", imageSourceFQN)
+				}
+
+				// Push to destination
+				if err := client.push(imageDestinationFQDN, img, creds); err != nil {
+					return errors.Wrapf(err, "Failed to push image %s", imageDestinationFQDN)
+				}
+			}
+
 			println(strings.Join(tagsToDelete, ","))
+
+			// Set the next regsitry hop for the next loop
+			currentSourceRepo = creds.Hostname + "/" + imageConfig.TargetRepository
 		}
 	}
 

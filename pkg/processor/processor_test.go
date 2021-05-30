@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/google/go-containerregistry/pkg/v1/remote"
 	containershipappv1beta2 "github.com/relativitydev/containership/api/v1beta2"
 )
 
@@ -117,7 +116,6 @@ func TestRun(t *testing.T) {
 			},
 			mockReturns: []interface{}{
 				[]string{"latest", "musl"},
-				&remote.Descriptor{},
 			},
 			wantErr: false,
 		},

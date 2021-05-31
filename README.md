@@ -8,144 +8,98 @@ Features include:
 
 Coming soon:
 - conditionally promote image based on gates
-- scan for images for security vulnerabilities
+- scan images for security vulnerabilities
 
 ## Table of Contents
-- [Building](#Building)
-- [Deploying](#Deploying)
-
-## Building
-
-### Quick start with [Visual Studio Code Remote - Containers](https://code.visualstudio.com/docs/remote/containers)
-
-This helps you pull and build quickly - dev containers launch the project inside a container with all the tooling
-required for a consistent and seamless developer experience.
-
-This means you don't have to install and configure your dev environment as the container handles this for you.
-
-To get started install [VSCode](https://code.visualstudio.com/) and the [Remote Containers extensions](
-https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-
-Clone the repo and launch code:
-
-```bash
-git clone git@github.com:relativitydev/containership.git
-cd containership
-code .
-```
-
-Once VSCode launches run `CTRL+SHIFT+P -> Remote-Containers: Reopen in container` and then use the integrated
-terminal to run:
-
-```bash
-make build
-```
-
-> Note: The first time you run the container it will take some time to build and install the tooling. The image
-> will be cached so this is only required the first time.
-
-### Run Locally
-
-#### Makefile & Operator-SDK
-
-This project is using [Operator SDK framework](https://github.com/operator-framework/operator-sdk), make sure you have installed the right version. To check the current version used for Containership check the `OPERATOR_RELEASE_VERSION` in file [.devcontainer/Dockerfile](https://github.com/relativitydev/containership/blob/main/.devcontainer/Dockerfile).
-
-```bash
-git clone git@github.com:relativitydev/containership.git
-cd containership
-make build
-```
-
-If the build process fails due to some "checksum mismatch" errors, make sure that `GOPROXY` and `GOSUMDB` environment variables are set properly.
-With Go installation on Fedora, for example, it could happen they are wrong.
-
-```bash
-go env GOPROXY GOSUMDB
-direct
-off
-```
-
-If not set properly you can just run.
-
-```bash
-go env -w GOPROXY=https://proxy.golang.org,direct GOSUMDB=sum.golang.org
-```
-
-#### Visual Studio Code
-
-This repo also supports debugging using the Visual Studio Code debugger. This is useful for stepping through code. There is a debugging configuartion already defined in `.vscode/launch.json`. Press `F5` to run the debugger.
-
-## Deploying
-
-### Custom Containership locally outside of a Kubernetes cluster
-
-The Operator SDK framework allows you to run the operator/controller locally outside the cluster without
-building an image. This should help during development/debugging of Containership Operator or Gates.
-> Note: This approach works only on Linux or macOS.
-
-
-1. Deploy CRDs
-   ```bash
-   make install
-   ```
-2. Run the operator locally with the default Kubernetes config file present at `$HOME/.kube/config`
- and change the operator log level via `--zap-log-level=` if needed
-   ```bash
-   make run ARGS="--zap-log-level=debug"
-   ```
+- [Getting Started](#Getting-Started)
+- [Deploying Containership]()
+- [Releases](#Releases)
+- [Contributing](#contributing)
+   - [Building & deploying locally](#building--deploying-locally)
+   - [Testing](#Testing)
    
-## Miscellaneous
+## Getting Started
 
-### Setting log levels
-
-You can change default log levels for Containership Operator. Containership Operator uses
- [Operator SDK logging](https://sdk.operatorframework.io/docs/building-operators/golang/references/logging/) mechanism.
-
-To change the logging level, find `--zap-log-level=` argument in Operator Deployment section in `config/manager/manager.yaml` file,
- modify its value and redeploy.
-
-Allowed values are `debug`, `info`, `error`, or an integer value greater than `0`, specified as string
-
-Default value: `info`
-
-To change the logging format, find `--zap-encoder=` argument in Operator Deployment section in `config/manager/manager.yaml` file,
- modify its value and redeploy.
-
-Allowed values are `json` and `console`
-
-Default value: `console`
-
-## Testing
-
-Tests should be written and used whenever possible. Tests are automatically run when a PR is created amd must pass to merge.
-
-To run tests locally
+Containership requires two custom resources - ContainerManagementObject (CMO) and RegistriesConfig. First, configure the RegistriesConfig. 
+```yaml
+apiVersion: containership.app/v1beta2
+kind: RegistriesConfig
+metadata:
+  name: registriesconfig-sample
+spec:
+  registries:
+    - name: dockerhub-relativitydev
+      hostname: index.docker.io
+      secretName: registries-secret
+    - name: gcr-helloworld
+      hostname: gcr.io
+      secretName: registries-secret
 ```
-make test
+There are two registries defined, each with a unique name `dockerhub-relativitydev` and `gcr-helloworld`. The `hostname` is where the registry is hosted. `secretName` references the name of Kubernetes secret where the registry's authentication credentials can be found. **The order the registries are listed is the same order images will be promoted.**
+
+Next, we'll make a CMO.
+```yaml
+apiVersion: containership.app/v1beta2
+kind: ContainerManagementObject
+metadata:
+  name: containermanagementobject-sample
+spec:
+  images:
+    - sourceRepository: busybox # if domain and namespace aren't specified, "docker.io/library" is default
+      targetRepository: relativitydev/busybox
+      supportedTags:
+        - glibc
+        - latest
+    - sourceRepository: gcr.io/google_containers/pause
+      supportedTags:
+        - 3.2
+        - latest
+```
+There are two images to be managed, _busybox_ (or _docker.io/library/busybox_) and *gcr.io/google_containers/pause*. With _busybox_, the tags _glibc_ and _latest_ will be pulled from DockerHub and pushed to `dockerhub-relativitydev`. Then _busybox_ will be pulled from `dockerhub-relativitydev` to `gcr-helloworld`. The repository name will be `relativitydev/busybox` as defined by `targetRepository`. 
+
+The same thing will happen for *gcr.io/google_containers/pause*, but `targetRepository` isn't defined, so Containership will use the same repository name as `sourceRepository` -- `google_containers/pause`.
+
+Finally, we need to make a Kubernetes secret to securely store registry credentials. In this example, we'll create one secret for multiple credentials. It is base64 encoded.
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: registries-secret
+type: kubernetes.io/dockerconfigjson
+data:
+  # This is a fake secret - not sensitive
+  .dockerconfigjson: ewogICJhdXRocyI6IHsKICAgICJkb2NrZXJodWItcmVsYXRpdml0eWRldiI6IHsKICAgICAgImF1dGgiOiAiVkdocGMwbHpUbTkwVW1WaGJEcFRkWEJsY2taaGEyVlRaV055WlhRPSIKICAgIH0KICB9Cn0=
 ```
 
-### Unit Testing
+Here is what `.dockerconfigjson` looks like decrypted.
+```json
+{
+  "auths": {
+    "dockerhub-relativitydev": {
+      // This is a fake secret - not sensitive
+      "auth": "VGhpc0lzTm90UmVhbDpTdXBlckZha2VTZWNyZXREb2NrZXI="
+    },
+    "gcr-helloworld": {
+      // This is a fake secret - not sensitive
+      "auth": "VGhpc0lzTm90UmVhbDpTdXBlckZha2VTZWNyZXRHb29nbGU="
+    }
+  }
+}
+```
+`dockerhub-relativitydev` and `gcr-helloworld` map to the `secretName` property in the RegistriesConfig. Make sure the names match or the credentials won't be found.
 
-This repo uses [testify](https://github.com/stretchr/testify) for assertions and [mockery](https://github.com/vektra/mockery) to mock third party dependencies through dependency injection.
+## Releases
 
-### Integration Testing
+You can find the latest releases [here](https://github.com/relativitydev/containership/releases).
 
-TODO
+## Contributing
 
-### Functional Testing
-You can easily spin up a local [kind](https://kind.sigs.k8s.io/) cluster for functional testing.
+You can find contributing guide [here](./CONTRIBUTING.md).
 
-1. Create Kind Cluster
-   ```bash
-   make kind-start
-   ```
-2. Deploy CRDs
-   ```bash
-   make install
-   ```
-3. Create sample CRs
-   ```bash
-   make deploy-samples
-   ```
-4. Launch app with `make run` or VSCode debugger
+### Building & deploying locally
+Learn how to build & deploy Containership locally [here](./BUILD.md).
+
+### Testing
+Learn how to improve testing for Containership [here](./TEST.md).
+
 

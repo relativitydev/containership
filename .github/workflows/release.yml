@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "*"
+# TODO: only main branch
 
 jobs:
   goreleaser:
@@ -15,7 +16,7 @@ jobs:
           fetch-depth: 0
       - name: Generate Release Notes
         id: changelog
-        uses: ./changelog
+        uses: ./.github/changelog
       - name: Set up Go
         uses: actions/setup-go@v2
         with:

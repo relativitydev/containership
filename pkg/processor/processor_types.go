@@ -1,7 +1,7 @@
 package processor
 
 type RegistryCredentials struct {
-	LoginURI string
+	Hostname string
 	Username string
 	Password string
 }

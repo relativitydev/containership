@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"time"
 
@@ -86,6 +85,8 @@ func (r *ContainerManagementObjectReconciler) Reconcile(ctx context.Context, req
 		return ctrl.Result{}, errors.Wrap(err, "Error reading registriesConfig list - requeue the request")
 	}
 
+	registryCreds := []processor.RegistryCredentials{}
+
 	/*
 		  Get registry credentials. This will only look at the first RegistryConfig returned.
 			Supporting multiple RegistriesConfigs and a consistent registry promotion order will
@@ -93,7 +94,7 @@ func (r *ContainerManagementObjectReconciler) Reconcile(ctx context.Context, req
 	*/
 	for _, registry := range registryConfigs.Items[0].Spec.Registries {
 		config := &processor.RegistryCredentials{
-			LoginURI: registry.URI,
+			Hostname: registry.Hostname,
 		}
 
 		if registry.SecretName != "" {
@@ -104,7 +105,7 @@ func (r *ContainerManagementObjectReconciler) Reconcile(ctx context.Context, req
 				Namespace: req.Namespace,
 			}, secretInstance)
 			if err != nil {
-				return ctrl.Result{}, errors.Wrap(err, fmt.Sprintf("Error reading secret %s - requeue the request", registry.SecretName))
+				return ctrl.Result{}, errors.Wrapf(err, "Error reading secret %s - requeue the request", registry.SecretName)
 			}
 
 			err = getRegistryCredentials(secretInstance, config)
@@ -112,9 +113,17 @@ func (r *ContainerManagementObjectReconciler) Reconcile(ctx context.Context, req
 				return ctrl.Result{}, errors.Wrap(err, "Error reading secret context - requeue the request")
 			}
 		}
+
+		registryCreds = append(registryCreds, *config)
 	}
 
-	// TODO: Call image promotion processor logic
+	// Run image promotion processor
+	client := processor.NewRegistryClient()
+
+	err = processor.Run(client, instance.Spec.Images, registryCreds)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "Image promotion processor failed - requeue the request")
+	}
 
 	return ctrl.Result{RequeueAfter: time.Second * time.Duration(interval)}, nil
 }
@@ -162,13 +171,13 @@ func getRegistryCredentials(secret *corev1.Secret, obj *processor.RegistryCreden
 
 	err := json.Unmarshal(rawCreds, &authsWrapper)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("Error reading secret %s contents", secret.Name))
+		return errors.Wrapf(err, "Error reading secret %s contents", secret.Name)
 	}
 
 	for _, value := range authsWrapper.Auths {
 		authRaw, err := base64.StdEncoding.DecodeString(value["auth"])
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("Error base64 decoding secret %s", secret.Name))
+			return errors.Wrapf(err, "Error base64 decoding secret %s", secret.Name)
 		}
 
 		auth := string(authRaw)

@@ -122,6 +122,8 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
 
+deploy-samples: ## Create CRs for quick testing
+	$(KUSTOMIZE) build config/samples | kubectl apply -f -
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 controller-gen: ## Download controller-gen locally if necessary.
@@ -200,3 +202,21 @@ catalog-build: opm ## Build a catalog image.
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
+
+# Build a local Kind cluster for running tests against
+KIND_CLUSTER_NAME ?= "containership-cluster"
+kind-start:
+ifeq (1, $(shell kind get clusters | grep ${KIND_CLUSTER_NAME} | wc -l))
+	@echo "Cluster already exists"
+else
+	@echo "Creating Cluster"
+	kind create cluster --name ${KIND_CLUSTER_NAME} --config kind-config.yaml
+	kubectl config delete-cluster kind-${KIND_CLUSTER_NAME}
+	kind get kubeconfig --internal --name ${KIND_CLUSTER_NAME} > ~/.kube/kind-config
+	KUBECONFIG=~/.kube/config:~/.kube/kind-config kubectl config view --flatten > mergedkub && mv mergedkub ~/.kube/config
+endif
+
+# Delete your local kind cluster
+kind-stop:
+	@echo "Deleting Kind Cluster"
+	kind delete cluster --name ${KIND_CLUSTER_NAME}

@@ -5,5 +5,5 @@ metadata:
 spec:
   registries:
     - name: dockerhub-relativitydev
-      uri: docker.io/relativitydev
+      hostname: index.docker.io
       secretName: registries-secret

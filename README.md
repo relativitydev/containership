@@ -46,9 +46,9 @@ make build
 
 ### Run Locally
 
-This project is using [Operator SDK framework](https://github.com/operator-framework/operator-sdk), make sure you
-have installed the right version. To check the current version used for Containership check the `OPERATOR_RELEASE_VERSION` in file
-[.devcontainer/Dockerfile](https://github.com/relativitydev/containership/blob/main/.devcontainer/Dockerfile).
+#### Makefile & Operator-SDK
+
+This project is using [Operator SDK framework](https://github.com/operator-framework/operator-sdk), make sure you have installed the right version. To check the current version used for Containership check the `OPERATOR_RELEASE_VERSION` in file [.devcontainer/Dockerfile](https://github.com/relativitydev/containership/blob/main/.devcontainer/Dockerfile).
 
 ```bash
 git clone git@github.com:relativitydev/containership.git
@@ -56,8 +56,7 @@ cd containership
 make build
 ```
 
-If the build process fails due to some "checksum mismatch" errors, make sure that `GOPROXY` and `GOSUMDB`
- environment variables are set properly.
+If the build process fails due to some "checksum mismatch" errors, make sure that `GOPROXY` and `GOSUMDB` environment variables are set properly.
 With Go installation on Fedora, for example, it could happen they are wrong.
 
 ```bash
@@ -72,6 +71,9 @@ If not set properly you can just run.
 go env -w GOPROXY=https://proxy.golang.org,direct GOSUMDB=sum.golang.org
 ```
 
+#### Visual Studio Code
+
+This repo also supports debugging using the Visual Studio Code debugger. This is useful for stepping through code. There is a debugging configuartion already defined in `.vscode/launch.json`. Press `F5` to run the debugger.
 
 ## Deploying
 
@@ -112,3 +114,38 @@ To change the logging format, find `--zap-encoder=` argument in Operator Deploym
 Allowed values are `json` and `console`
 
 Default value: `console`
+
+## Testing
+
+Tests should be written and used whenever possible. Tests are automatically run when a PR is created amd must pass to merge.
+
+To run tests locally
+```
+make test
+```
+
+### Unit Testing
+
+This repo uses [testify](https://github.com/stretchr/testify) for assertions and [mockery](https://github.com/vektra/mockery) to mock third party dependencies through dependency injection.
+
+### Integration Testing
+
+TODO
+
+### Functional Testing
+You can easily spin up a local [kind](https://kind.sigs.k8s.io/) cluster for functional testing.
+
+1. Create Kind Cluster
+   ```bash
+   make kind-start
+   ```
+2. Deploy CRDs
+   ```bash
+   make install
+   ```
+3. Create sample CRs
+   ```bash
+   make deploy-samples
+   ```
+4. Launch app with `make run` or VSCode debugger
+

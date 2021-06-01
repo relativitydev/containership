@@ -137,3 +137,51 @@ func TestRun(t *testing.T) {
 		})
 	}
 }
+
+func Test_setTargetRepository(t *testing.T) {
+	type args struct {
+		targetRepository *string
+		sourceRepository string
+	}
+
+	empty := ""
+	set := "hello-world"
+
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+		want    string
+	}{
+		{
+			name: "TargetRepository is empty",
+			args: args{
+				targetRepository: &empty,
+				sourceRepository: "library/busybox",
+			},
+			wantErr: false,
+			want:    "library/busybox",
+		},
+		{
+			name: "TargetRepository is set",
+			args: args{
+				targetRepository: &set,
+				sourceRepository: "library/busybox",
+			},
+			wantErr: false,
+			want:    set,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := setTargetRepository(tt.args.targetRepository, tt.args.sourceRepository); (err != nil) != tt.wantErr {
+				t.Errorf("setTargetRepository() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if *tt.args.targetRepository != tt.want {
+				t.Errorf("target repository was incorrectly set")
+			}
+		})
+	}
+}

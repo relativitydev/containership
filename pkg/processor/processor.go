@@ -15,14 +15,9 @@ func Run(client RegistryClient, images []containershipappv1beta2.Image, registri
 	for _, imageConfig := range images {
 		currentSourceRepo := imageConfig.SourceRepository
 
-		// Set the target repository to match source if empty
-		if imageConfig.TargetRepository == "" {
-			repo, err := name.NewRepository(currentSourceRepo)
-			if err != nil {
-				return errors.Wrapf(err, "Source repository name parsing error %s", currentSourceRepo)
-			}
-
-			imageConfig.TargetRepository = repo.RepositoryStr()
+		err := setTargetRepository(&imageConfig.TargetRepository, currentSourceRepo)
+		if err != nil {
+			return errors.Wrapf(err, "Source repository name parsing error %s", currentSourceRepo)
 		}
 
 		for _, creds := range registries {
@@ -65,6 +60,20 @@ func Run(client RegistryClient, images []containershipappv1beta2.Image, registri
 			// Set the next registry hop for the next loop
 			currentSourceRepo = creds.Hostname + "/" + imageConfig.TargetRepository
 		}
+	}
+
+	return nil
+}
+
+func setTargetRepository(targetRepository *string, sourceRepository string) error {
+	// Set the target repository to match source if empty
+	if *targetRepository == "" {
+		repo, err := name.NewRepository(sourceRepository)
+		if err != nil {
+			return errors.Wrapf(err, "Source repository name parsing error %s", sourceRepository)
+		}
+
+		*targetRepository = repo.RepositoryStr()
 	}
 
 	return nil

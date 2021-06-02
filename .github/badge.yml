@@ -1,0 +1,13 @@
+types:
+  build: Build
+  chore: Maintenance
+  ci: Continuous Integration
+  docs: Documentation
+  feat: Features
+  fix: Bug Fixes
+  perf: Performance Improvements
+  refactor: Code Refactoring
+  revert: Revert Change
+  style: Code Style
+  test: Testing
+  sec: Security

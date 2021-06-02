@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.3.0
+    controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
   name: containermanagementobjects.containership.app
 spec:
@@ -13,12 +13,10 @@ spec:
     kind: ContainerManagementObject
     listKind: ContainerManagementObjectList
     plural: containermanagementobjects
-    shortNames:
-    - cmo
     singular: containermanagementobject
   scope: Namespaced
   versions:
-  - name: v1beta1
+  - name: v1beta2
     schema:
       openAPIV3Schema:
         description: ContainerManagementObject is the Schema for the containermanagementobjects
@@ -41,81 +39,31 @@ spec:
               ContainerManagementObject
             properties:
               images:
-                description: Data regarding the images you want pushed with Containership
+                description: Images is a list of images that containership will manage
+                  kubebuilder:validation:Required
                 items:
-                  description: Images contains the metadata for the images to be managed
-                    by Containership
                   properties:
-                    destinations:
-                      description: Destinations are the intended destinations for
-                        all imported tags
-                      properties:
-                        azurecontainerregistries:
-                          items:
-                            description: AzureContainerRegistries is required information
-                              to interact with Azure container registries
-                            properties:
-                              name:
-                                type: string
-                              resourceGroup:
-                                description: ResourceGroup is optional. Set if you
-                                  want to override the global resource group (envvar
-                                  AZURE_RESOURCE_GROUP)
-                                type: string
-                              ring:
-                                description: Ring is an optional field that indicates
-                                  an image tag should import from a destination with
-                                  a subsequent ring value rather than source. Destinations
-                                  with higher ring values import tags from destinations
-                                  with lower ring values.
-                                type: integer
-                              subscriptionId:
-                                description: SubscriptionID is optional. Set if you
-                                  want to override the global subscriptionID (envvar
-                                  AZURE_SUBSCRIPTION_ID)
-                                type: string
-                            required:
-                            - name
-                            type: object
-                          type: array
-                        googlecontainerregistries:
-                          items:
-                            description: GoogleContainerRegistries is required information
-                              to interact with Google container registries
-                            properties:
-                              name:
-                                type: string
-                            required:
-                            - name
-                            type: object
-                          type: array
-                      type: object
-                    sourceImage:
-                      description: 'SourceImage is the name of the external image
-                        to pull. Should not include tags. ex: docker.io/library/busybox'
+                    sourceRepository:
+                      description: SourceRepository is where the image will be pulled
+                        from. It is the source of truth.
                       type: string
                     supportedTags:
-                      description: SupportedTags are the tags that will be pulled
-                        externally and pushed into the destinations
+                      description: SupportedTags are the image tags that will pulled
+                        from the source repository. Any extra tags found in the target
+                        image destinations will be deleted.
                       items:
                         type: string
                       type: array
                     targetRepository:
-                      description: TargetRepository is the name of the image repository
-                        that will be pushed to the destination ACR. Only use if you
-                        want to rename the image. Do not include tags.
+                      description: "\t TargetRepository is an optional field that
+                        allows the image repository to be renamed. \t If sourceRepository
+                        is \"docker.io/library/busybox\", setting targetRepository
+                        to \"hello-world/busybox\" will \t rename the image \"hello-world/busybox\""
                       type: string
                   required:
-                  - destinations
-                  - sourceImage
-                  - supportedTags
+                  - sourceRepository
                   type: object
                 type: array
-              slackWebhookEndpoint:
-                description: 'Important: Run "make" to regenerate code after modifying
-                  this file SlackWebhookEndpoint is the API endpoint for the Slack
-                  channel to which you want alerts sent'
-                type: string
             required:
             - images
             type: object

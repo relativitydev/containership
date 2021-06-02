@@ -1,0 +1,11 @@
+apiVersion: containership.app/v1beta2
+kind: ContainerManagementObject
+metadata:
+  name: containermanagementobject-sample
+spec:
+  images:
+    - sourceRepository: busybox # docker.io/library is default
+      targetRepository: relativitydev/busybox
+      supportedTags:
+        - glibc
+        - latest

@@ -1,7 +1,7 @@
 # See here for image contents: https://github.com/microsoft/vscode-dev-containers/tree/v0.177.0/containers/go/.devcontainer/base.Dockerfile
 
 # [Choice] Go version: 1, 1.16, 1.15
-ARG VARIANT="1.16"
+ARG VARIANT="1.15"
 FROM mcr.microsoft.com/vscode/devcontainers/go:0-${VARIANT}
 
 # [Option] Install Node.js
@@ -14,7 +14,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends apt-utils dialog 2>&1 \
     #
     # Verify git, process tools, lsb-release (common in install instructions for CLIs) installed
-    && apt-get -y install git iproute2 procps lsb-release \
+    && apt-get -y install git iproute2 procps lsb-release vim \
     #
     # Docker install
     && apt-get install -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common \
@@ -28,24 +28,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Install gocode-gomod
-RUN go get -x -d github.com/stamblerre/gocode 2>&1 \
-    && go build -o gocode-gomod github.com/stamblerre/gocode \
-    && mv gocode-gomod $GOPATH/bin/ \
-    #
-    # Install Go tools
-    && GOPATH=/tmp/gotools GO111MODULE=on go get -u -v \
-        github.com/uudashr/gopkgs/v2/cmd/gopkgs@latest \
-        github.com/ramya-rao-a/go-outline@latest \
-        github.com/cweill/gotests/...@latest \
-        github.com/fatih/gomodifytags@latest \
-        github.com/josharian/impl@latest \
-        github.com/mbenkmann/goformat/goformat@latest \
-        github.com/haya14busa/goplay/cmd/goplay@latest \
-        github.com/go-delve/delve/cmd/dlv@latest \
-        golang.org/x/tools/gopls@latest 2>&1 \
-    # Install golangci-lint
-    && curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.39.0
+# Install golangci-lint
+RUN github.com/stamblerre/gocodecurl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.39.0
 
 # [Optional] Uncomment this line to install global node packages.
 # RUN su vscode -c "source /usr/local/share/nvm/nvm.sh && npm install -g <your-package-here>" 2>&1
@@ -59,7 +43,12 @@ RUN curl -LO https://github.com/operator-framework/operator-sdk/releases/downloa
     && rm operator-sdk_linux_amd64
 
 # Install kubectl
-ENV KUBECTL_VERSION=1.18.6
+ENV KUBECTL_VERSION=1.19.11
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl \
   && chmod +x ./kubectl \
   && sudo mv ./kubectl /usr/local/bin/kubectl
+  
+# Install Kind
+RUN curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.11.0/kind-linux-amd64 \
+    && chmod +x ./kind \
+    && mv ./kind /usr/local/bin/kind

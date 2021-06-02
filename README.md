@@ -1,100 +1,194 @@
 # Containership
 
-**NOTE: This version only supports promotion to Azure container registries and using Palo Alto's Prisma for vulnerability scanning. A new, cloud agnostic, version is in development. It will work with any OCI compliant container registry and support a variety of promotion gates.**
+Containership is a Kubernetes operator that automates image management responsibilities. 
 
-A kubernetes operator automating container image promotion and deletion across registries. It includes gates for vulnerability scanning and protection against deleting images still being used. 
+Features include:
+- pushing and pulling images into multiple container registries
+- delete old image tags
 
-Built with Operator-SDK. For information on how to use Operator-Sdk, visit their [website](https://sdk.operatorframework.io/docs/).
+Coming soon:
+- conditionally promote image based on gates
+- scan images for security vulnerabilities
 
-Containership can be used to:
-- Define images configuration as code
-- Import images from external and internal sources to Azure Container Registries (ACR)
-- Conditionally promote images based on gates
-  - Use Prisma to only promote images with no security vulnerabilities
-  - Only delete images if they are not being run in a cluster
-- Supports Azure consumer and government regsitries
+_Note: This is our open source version. We are continuing to bring v2.x to feature parity with our closed source version. Once this is complete, we will switch to only using the open source version._ 
 
-### Table of Contents
-- [Functionality and Usage](./docs/Usage.md)
-- [Gate Directory](./pkg/gates/README.md)
+## Table of Contents
+- [Getting Started](#Getting-Started)
+- [Deploying Containership](#deploying-containership)
+- [Releases](#Releases)
+- [Contributing](#contributing)
+   - [Building & deploying locally](#building--deploying-locally)
+   - [Testing](#Testing)
+   
+## Getting Started
 
-## Testing
-
-### Using a .env file
-
-Environment variables are defined in `.env` in the project root. This centralized location is used for debugging and testing. It is not used in deployments.
-
+Containership requires two custom resources - ContainerManagementObject (CMO) and RegistriesConfig. First, let's configure the RegistriesConfig. 
+```yaml
+apiVersion: containership.app/v1beta2
+kind: RegistriesConfig
+metadata:
+  name: registriesconfig-sample
+  namespace: containership-system
+spec:
+  registries:
+    - name: dockerhub-relativitydev
+      hostname: index.docker.io
+      secretName: registries-secret
+    - name: gcr-helloworld
+      hostname: gcr.io
+      secretName: registries-secret
 ```
-GOPATH=/home/vscode/go
-GO111MODULE=on
-WATCH_NAMESPACE=
-AZURE_GO_SDK_LOG_LEVEL=
-AZURE_TENANT_ID=
-AZURE_CLIENT_ID=
-AZURE_CLIENT_SECRET=<super-secret>
-AZURE_REGISTRY_SUBSCRIPTION_ID=
-AZURE_REGISTRY_RESOURCE_GROUP=
+There are two registries defined, each with a unique name `dockerhub-relativitydev` and `gcr-helloworld`. The `hostname` is where the registry is hosted. `secretName` references the name of Kubernetes secret where the registry's authentication credentials can be found. **The order the registries are listed in the `RegistriesConfig` is the order Containership will promote the images.**
 
-PRISMA_VULNERABILITY_LEVEL=low
+Next, we'll make a CMO.
+```yaml
+apiVersion: containership.app/v1beta2
+kind: ContainerManagementObject
+metadata:
+  name: containermanagementobject-sample
+spec:
+  images:
+    - sourceRepository: busybox # if domain and namespace aren't specified, "docker.io/library" is default
+      targetRepository: relativitydev/busybox
+      supportedTags:
+        - glibc
+        - latest
+    - sourceRepository: gcr.io/google_containers/pause
+      supportedTags:
+        - 3.2
+        - latest
+```
+There are two images to be managed, _busybox_ (or _docker.io/library/busybox_) and *gcr.io/google_containers/pause*. With _busybox_, the tags _glibc_ and _latest_ will be pulled from DockerHub and pushed to `dockerhub-relativitydev`. Then _busybox_ will be pulled from `dockerhub-relativitydev` to `gcr-helloworld`. The repository name will be `relativitydev/busybox` as defined by `targetRepository`. 
 
-ALLOWED_DESTINATIONS="registryname.azurecr.io"
+The same thing will happen for *gcr.io/google_containers/pause*, but `targetRepository` isn't defined, so Containership will use the same repository name as `sourceRepository` -- `google_containers/pause`.
 
-REGISTRYNAME_USERNAME=
-REGISTRYNAME_PASSWORD=<super-secret>
-REGISTRYNAME_PRISMA_URL=prisma.example.com
-REGISTRYNAME_PRISMA_USERNAME=containership-user
-REGISTRYNAME_PRISMA_PASSWORD=<super-secret>
+After deploying, you should see the supported tags listed in your regsitries. If there were any extra tags in the registries that are not listed in the CMO, they will be deleted.
 
+Finally, we need to make a Kubernetes secret to securely store registry credentials. In this example, we'll create one secret for multiple credentials. It is base64 encoded.
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: registries-secret
+  namespace: containership-system
+type: kubernetes.io/dockerconfigjson
+data:
+  # This is a fake secret - not sensitive
+  .dockerconfigjson: ewogICJhdXRocyI6IHsKICAgICJkb2NrZXJodWItcmVsYXRpdml0eWRldiI6IHsKICAgICAgImF1dGgiOiAiVkdocGMwbHpUbTkwVW1WaGJEcFRkWEJsY2taaGEyVlRaV055WlhRPSIKICAgIH0KICB9Cn0=
 ```
 
-### Run locally outside the cluster
+Here is what `.dockerconfigjson` looks like decrypted.
+```json
+{
+  "auths": {
+    "dockerhub-relativitydev": {
+      // This is a fake secret - not sensitive
+      "auth": "VGhpc0lzTm90UmVhbDpTdXBlckZha2VTZWNyZXREb2NrZXI="
+    },
+    "gcr-helloworld": {
+      // This is a fake secret - not sensitive
+      "auth": "VGhpc0lzTm90UmVhbDpTdXBlckZha2VTZWNyZXRHb29nbGU="
+    }
+  }
+}
+```
+`dockerhub-relativitydev` and `gcr-helloworld` map to the `secretName` property in the RegistriesConfig. Make sure the names match or the credentials won't be found.
 
-Run the operator locally while hitting a real cluster's APIs. `kubectl config current-context` is the cluster you will use.
+## Deploying Containership
 
-Install your CRDs into the cluster
+### Helm
+
+Looking for contributors!
+
+### Kustomize
+This repo has kustomize deployments setup in the `config` directory.
+
+#### Install
+- You can deploy using `make`
 ```
 make install
+make deploy
+```
+- Alternatively, you can using `kubectl` directory
+```
+kubectl apply -k ./config/default
 ```
 
-Apply your CR to the cluster
+#### Uninstall
+- You can deploy using `make`
 ```
-kubectl apply -f config/samples/containership_v1beta1_containermanagementobject.yaml
+make undeploy
+make uninstall
 ```
-
-Run the operator against the cluster
+- Alternatively, you can using `kubectl` directory
 ```
-make run
-```
-
-### Debugging in VSCode
-
-You can also debug in VSCode with the ability to set breakpoints. There is already a debug configuration setup called "Containership" in `launch.json`.
-
-Again, you need to install your CRD and create your CRs. See above.
-
-### Unit Testing
-
-Business logic should live in the `/pkg` directory. Each must contain unit tests. All unit tests are called via
-```
-make test-pkg
+kubectl delete -k ./config/default
 ```
 
-It is also possible to run/debug individual tests, files and packages using VSCode.
+### YAML
 
+#### Install
+If you want to try Containership on Minikube or a different Kubernetes deployment without using Helm you can still deploy it with kubectl.
 
-### E2E Testing
-
-To start up the kind test cluster run in terminal:
+- We provide sample YAML declaration which includes our CRDs and all other resources in a file which is available on the GitHub releases page. Run the following command (if needed, replace the version, in this case 2.0.0, with the one you are using):
 ```
-make kind-start
-```
-To run all the end to end tests (and unit tests) run in terminal:
-```
-make test
-```
-Once you are done testing, close your kind cluster by running in terminal:
-```
-make kind-stop
+kubectl apply -f https://github.com/relativiydev/containership/releases/download/v2.0.0/containership-2.0.0.yaml
 ```
 
-_Note: these tests typically take about 200s (Breakdown: 115s - E2E tests, 85s - pkg unit tests)._
+- Alternatively you can download the file and deploy it from the local path:
+```
+kubectl apply -f containership-2.0.0.yaml
+```
+
+- You can also find the same YAML declarations in our /config directory on our GitHub repo if you prefer to clone it.
+```
+git clone https://github.com/relativitydev/containership && cd containership
+
+VERSION=2.0.0 make deploy
+```
+
+#### Uninstall
+- In case of installing from released YAML file just run the following command (if needed, replace the version, in this case 2.0.0, with the one you are using):
+```
+kubectl delete -f https://github.com/relativitydev/containership/releases/download/v2.0.0/containership-2.0.0.yaml
+```
+
+- If you have downloaded the file locally, you can run:
+```
+kubectl delete -f containership-2.0.0.yaml
+```
+
+- You would need to run these commands from within the directory of the cloned GitHub repo:
+```
+VERSION=2.0.0 make undeploy
+```
+
+### Best Practices
+
+#### Orgainzing Custom Resources
+Only one `RegistriesConfig` should be deployed per cluster running the operator. Deploying the `RegistriesConfig`, the `kubernetes.io/dockerconfigjson` secret and the operator together in the same namespace is a good approach.
+
+Multiple `ContainerManagementObjects` can be deployed to a cluster. Two common setups are:
+- Deploy one CMO for all images to manage
+- Deploy one CMO per repository
+
+CMOs are flexible so you can organize them however you prefer.
+
+#### Key tips
+- Don't declare the same image multiple times. Containership does not have any protections for duplicate image references.
+- Keep `RegistriesConfig`, it's referenced secret(s), and containership operator in the same namespace.
+- The order the registries are listed in `RegistriesConfig` is the same order images will be promoted.
+
+## Releases
+
+You can find the latest releases [here](https://github.com/relativitydev/containership/releases).
+
+## Contributing
+
+You can find contributing guide [here](./CONTRIBUTING.md).
+
+### Building & deploying locally
+Learn how to build & deploy Containership locally [here](./BUILD.md).
+
+### Testing
+Learn how to improve testing for Containership [here](./TEST.md).

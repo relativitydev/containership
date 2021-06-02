@@ -21,6 +21,12 @@ rules:
 - apiGroups:
   - containership.app
   resources:
+  - containermanagementobjects/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - containership.app
+  resources:
   - containermanagementobjects/status
   verbs:
   - get

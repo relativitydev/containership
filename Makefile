@@ -1,3 +1,11 @@
+##################################################
+# Variables                                      #
+##################################################
+IMAGE_REGISTRY ?= docker.io
+IMAGE_REPO     ?= relativitydev
+
+IMAGE_CONTROLLER = $(IMAGE_REGISTRY)/$(IMAGE_REPO)/containership:$(VERSION)
+
 # VERSION defines the project version for the bundle.
 # Update this value when you upgrade the version of your project.
 # To re-generate a bundle for another specific version without changing the standard setup, you can:
@@ -220,3 +228,17 @@ endif
 kind-stop:
 	@echo "Deleting Kind Cluster"
 	kind delete cluster --name ${KIND_CLUSTER_NAME}
+	
+##################################################
+# Release                                        #
+##################################################
+.PHONY: release
+release: manifests kustomize set-version
+	cd config/manager && \
+	$(KUSTOMIZE) edit set image relativitydev/containership=${IMAGE_CONTROLLER}
+	$(KUSTOMIZE) build config/default > containership-$(VERSION).yaml
+
+.PHONY: set-version
+set-version:
+	@sed -i".out" -e 's@Version[ ]*=.*@Version = "$(VERSION)"@g' ./version/version.go;
+	rm -rf ./version/version.go.out

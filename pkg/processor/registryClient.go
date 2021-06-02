@@ -6,8 +6,9 @@ import (
 )
 
 type RegistryClient interface {
-	listTags(repository string, creds RegistryCredentials) ([]string, error)
+	delete(destFQN string, creds RegistryCredentials) error
 	copy(sourceFQN string, destFQN string, creds RegistryCredentials) error
+	listTags(repository string, creds RegistryCredentials) ([]string, error)
 }
 
 type registryClientImpl struct {
@@ -30,6 +31,15 @@ func (c registryClientImpl) listTags(repository string, creds RegistryCredential
 // Copies an image from one remote registry to the other
 func (c registryClientImpl) copy(sourceFQN string, destFQN string, creds RegistryCredentials) error {
 	return crane.Copy(sourceFQN, destFQN, crane.WithAuth(
+		&authn.Basic{
+			Username: creds.Username,
+			Password: creds.Password,
+		},
+	))
+}
+
+func (c registryClientImpl) delete(destFQN string, creds RegistryCredentials) error {
+	return crane.Delete(destFQN, crane.WithAuth(
 		&authn.Basic{
 			Username: creds.Username,
 			Password: creds.Password,

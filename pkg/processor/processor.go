@@ -3,7 +3,6 @@ package processor
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/ahmetb/go-linq"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -16,14 +15,9 @@ func Run(client RegistryClient, images []containershipappv1beta2.Image, registri
 	for _, imageConfig := range images {
 		currentSourceRepo := imageConfig.SourceRepository
 
-		// Set the target repository to match source if empty
-		if imageConfig.TargetRepository == "" {
-			repo, err := name.NewRepository(currentSourceRepo)
-			if err != nil {
-				return errors.Wrapf(err, "Source repository name parsing error %s", currentSourceRepo)
-			}
-
-			imageConfig.TargetRepository = repo.RepositoryStr()
+		err := setTargetRepository(&imageConfig.TargetRepository, currentSourceRepo)
+		if err != nil {
+			return errors.Wrapf(err, "Source repository name parsing error %s", currentSourceRepo)
 		}
 
 		for _, creds := range registries {
@@ -41,6 +35,7 @@ func Run(client RegistryClient, images []containershipappv1beta2.Image, registri
 			// Determine which tags should be imported and which should be deleted
 			tagsToDelete, tagsToImport := populateTagArrays(targetTags, imageConfig.SupportedTags)
 
+			// Copy the supported tags from source to destination
 			for _, tag := range tagsToImport {
 				imageSourceFQN := currentSourceRepo + ":" + tag
 
@@ -52,11 +47,33 @@ func Run(client RegistryClient, images []containershipappv1beta2.Image, registri
 				}
 			}
 
-			println(strings.Join(tagsToDelete, ","))
+			// Delete the unsupported tags
+			for _, tag := range tagsToDelete {
+				imageDestinationFQN := fmt.Sprintf("%s/%s:%s", creds.Hostname, imageConfig.TargetRepository, tag)
+
+				err = client.delete(imageDestinationFQN, creds)
+				if err != nil {
+					return errors.Wrapf(err, "Failed to delete image from %s", imageDestinationFQN)
+				}
+			}
 
 			// Set the next registry hop for the next loop
 			currentSourceRepo = creds.Hostname + "/" + imageConfig.TargetRepository
 		}
+	}
+
+	return nil
+}
+
+func setTargetRepository(targetRepository *string, sourceRepository string) error {
+	// Set the target repository to match source if empty
+	if *targetRepository == "" {
+		repo, err := name.NewRepository(sourceRepository)
+		if err != nil {
+			return errors.Wrapf(err, "Source repository name parsing error %s", sourceRepository)
+		}
+
+		*targetRepository = repo.RepositoryStr()
 	}
 
 	return nil

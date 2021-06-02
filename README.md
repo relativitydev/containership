@@ -1,6 +1,6 @@
 # Containership
 
-Containership is a kubernetes operator that automates image management responsibilities. 
+Containership is a Kubernetes operator that automates image management responsibilities. 
 
 Features include:
 - pushing and pulling images into multiple container registries
@@ -26,6 +26,7 @@ apiVersion: containership.app/v1beta2
 kind: RegistriesConfig
 metadata:
   name: registriesconfig-sample
+  namespace: containership-system
 spec:
   registries:
     - name: dockerhub-relativitydev
@@ -65,6 +66,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: registries-secret
+  namespace: containership-system
 type: kubernetes.io/dockerconfigjson
 data:
   # This is a fake secret - not sensitive
@@ -88,15 +90,92 @@ Here is what `.dockerconfigjson` looks like decrypted.
 ```
 `dockerhub-relativitydev` and `gcr-helloworld` map to the `secretName` property in the RegistriesConfig. Make sure the names match or the credentials won't be found.
 
+After deploying, you should see the supported tags listed in your regsitries. If there were any extra tags in the registries that are not listed in the CMO, they will be deleted.
+
 ## Deploying Containership
 
+### Helm
+
+Looking for contributors!
+
+### Kustomize
+This repo has kustomize deployments setup in the `config` directory.
+
+#### Install
+- You can deploy using `make`
+```
+make install
+make deploy
+```
+- Alternatively, you can using `kubectl` directory
+```
+kubectl apply -k ./config/default
+```
+
+#### Uninstall
+- You can deploy using `make`
+```
+make undeploy
+make uninstall
+```
+- Alternatively, you can using `kubectl` directory
+```
+kubectl delete -k ./config/default
+```
+
+### YAML
+
+#### Install
+If you want to try Containership on Minikube or a different Kubernetes deployment without using Helm you can still deploy it with kubectl.
+
+- We provide sample YAML declaration which includes our CRDs and all other resources in a file which is available on the GitHub releases page. Run the following command (if needed, replace the version, in this case 2.0.0, with the one you are using):
+```
+kubectl apply -f https://github.com/relativiydev/containership/releases/download/v2.0.0/containership-2.0.0.yaml
+```
+
+- Alternatively you can download the file and deploy it from the local path:
+```
+kubectl apply -f containership-2.0.0.yaml
+```
+
+- You can also find the same YAML declarations in our /config directory on our GitHub repo if you prefer to clone it.
+```
+git clone https://github.com/relativitydev/containership && cd containership
+
+VERSION=2.0.0 make deploy
+```
+
+#### Uninstall
+- In case of installing from released YAML file just run the following command (if needed, replace the version, in this case 2.0.0, with the one you are using):
+```
+kubectl delete -f https://github.com/relativitydev/containership/releases/download/v2.3.0/containership-2.3.0.yaml
+```
+
+- If you have downloaded the file locally, you can run:
+```
+kubectl delete -f containership-2.3.0.yaml
+```
+
+- You would need to run these commands from within the directory of the cloned GitHub repo:
+```
+VERSION=2.0.0 make undeploy
+```
+
+### Best Practices
+
+#### Orgainzing Custom Resources
 Only one `RegistriesConfig` should be deployed per cluster running the operator. Deploying the `RegistriesConfig`, the `kubernetes.io/dockerconfigjson` secret and the operator together is a simple approach.
 
 Multiple `ContainerManagementObjects` can be deployed a cluster. Two common common setups are
 - Deploy one CMO for all images to manage
 - Deploy one CMO per repository
 
-CMOs are flexible so you can organize how to manage images for anything.
+CMOs are flexible so you can organize however yo prefer.
+
+#### Key tips
+- Don't declare the same image multiple times. Containership does not have any protections for duplicate image references.
+- Keep `RegistriesConfig`, it's referenced secret(s), and containership operator in the same namespace
+- The order the registries are listed in `RegistriesConfig` is the same order images will be promoted
 
 ## Releases
 
@@ -111,5 +190,3 @@ Learn how to build & deploy Containership locally [here](./BUILD.md).
 
 ### Testing
 Learn how to improve testing for Containership [here](./TEST.md).
-
-

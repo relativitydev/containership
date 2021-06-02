@@ -56,8 +56,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: https://uploads.github.com/repos/relativitydev/containership/releases/${{ steps.get-release-info.outputs.id }}/assets?name=containership-${{ steps.get_version.outputs.VERSION }}.yaml
-          asset_path: keda-${{ steps.get_version.outputs.VERSION }}.yaml
-          asset_name: keda-${{ steps.get_version.outputs.VERSION }}.yaml
+          asset_path: containership-${{ steps.get_version.outputs.VERSION }}.yaml
+          asset_name: containership-${{ steps.get_version.outputs.VERSION }}.yaml
           asset_content_type: application/x-yaml
           
   push_to_registry:

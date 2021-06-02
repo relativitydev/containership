@@ -23,6 +23,20 @@ func (_m *MockRegistryClient) copy(sourceFQN string, destFQN string, creds Regis
 	return r0
 }
 
+// delete provides a mock function with given fields: destFQN, creds
+func (_m *MockRegistryClient) delete(destFQN string, creds RegistryCredentials) error {
+	ret := _m.Called(destFQN, creds)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, RegistryCredentials) error); ok {
+		r0 = rf(destFQN, creds)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // listTags provides a mock function with given fields: repository, creds
 func (_m *MockRegistryClient) listTags(repository string, creds RegistryCredentials) ([]string, error) {
 	ret := _m.Called(repository, creds)

@@ -148,4 +148,3 @@ You can easily spin up a local [kind](https://kind.sigs.k8s.io/) cluster for fun
    make deploy-samples
    ```
 4. Launch app with `make run` or VSCode debugger
-

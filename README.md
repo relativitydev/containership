@@ -12,7 +12,7 @@ Coming soon:
 
 ## Table of Contents
 - [Getting Started](#Getting-Started)
-- [Deploying Containership]()
+- [Deploying Containership](#deploying-containership)
 - [Releases](#Releases)
 - [Contributing](#contributing)
    - [Building & deploying locally](#building--deploying-locally)
@@ -20,7 +20,7 @@ Coming soon:
    
 ## Getting Started
 
-Containership requires two custom resources - ContainerManagementObject (CMO) and RegistriesConfig. First, configure the RegistriesConfig. 
+Containership requires two custom resources - ContainerManagementObject (CMO) and RegistriesConfig. First, let's configure the RegistriesConfig. 
 ```yaml
 apiVersion: containership.app/v1beta2
 kind: RegistriesConfig
@@ -87,6 +87,16 @@ Here is what `.dockerconfigjson` looks like decrypted.
 }
 ```
 `dockerhub-relativitydev` and `gcr-helloworld` map to the `secretName` property in the RegistriesConfig. Make sure the names match or the credentials won't be found.
+
+## Deploying Containership
+
+Only one `RegistriesConfig` should be deployed per cluster running the operator. Deploying the `RegistriesConfig`, the `kubernetes.io/dockerconfigjson` secret and the operator together is a simple approach.
+
+Multiple `ContainerManagementObjects` can be deployed a cluster. Two common common setups are
+- Deploy one CMO for all images to manage
+- Deploy one CMO per repository
+
+CMOs are flexible so you can organize how to manage images for anything.
 
 ## Releases
 

@@ -1,0 +1,12 @@
+apiVersion: containership.app/v1beta2
+kind: Gate
+metadata:
+  name: gate-sample
+spec:
+  type: prisma-scan
+  version: v1
+  metadata:
+    baseUrl: https://prisma.example.com
+    username: prisma-user
+    # Just an example. Not a real secret. The gate will read the secret to get the value
+    password: k8s-secret-name

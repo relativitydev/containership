@@ -4,11 +4,6 @@
 ARG VARIANT="1.15"
 FROM mcr.microsoft.com/vscode/devcontainers/go:0-${VARIANT}
 
-# [Option] Install Node.js
-ARG INSTALL_NODE="true"
-ARG NODE_VERSION="lts/*"
-RUN if [ "${INSTALL_NODE}" = "true" ]; then su vscode -c "umask 0002 && . /usr/local/share/nvm/nvm.sh && nvm install ${NODE_VERSION} 2>&1"; fi
-
 # Configure apt, install packages and tools
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends apt-utils dialog 2>&1 \
@@ -31,11 +26,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 # Install golangci-lint
 RUN github.com/stamblerre/gocodecurl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.39.0
 
-# [Optional] Uncomment this line to install global node packages.
-# RUN su vscode -c "source /usr/local/share/nvm/nvm.sh && npm install -g <your-package-here>" 2>&1
-
 # Install operator SDK
-ENV OPERATOR_RELEASE_VERSION=v1.6.4
+ENV OPERATOR_RELEASE_VERSION=v1.9.0
 RUN curl -LO https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_RELEASE_VERSION}/operator-sdk_linux_amd64 \
     && chmod +x operator-sdk_linux_amd64 \
     && mkdir -p /usr/local/bin/ \

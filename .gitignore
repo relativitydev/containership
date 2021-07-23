@@ -18,3 +18,5 @@
 cover.out
 .env
 /testbin
+
+.DS_Store

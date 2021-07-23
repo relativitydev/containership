@@ -4,7 +4,8 @@ on:
   push:
     tags:
       - "*"
-# TODO: only main branch
+    branches:
+      - main
 
 jobs:
   goreleaser:

@@ -132,7 +132,7 @@ If you want to try Containership on Minikube or a different Kubernetes deploymen
 
 - We provide sample YAML declaration which includes our CRDs and all other resources in a file which is available on the GitHub releases page. Run the following command (if needed, replace the version, in this case 2.0.0, with the one you are using):
 ```
-kubectl apply -f https://github.com/relativiydev/containership/releases/download/v2.0.0/containership-2.0.0.yaml
+kubectl apply -f https://github.com/relativitydev/containership/releases/download/v2.0.0/containership-2.0.0.yaml
 ```
 
 - Alternatively you can download the file and deploy it from the local path:
